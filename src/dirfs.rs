@@ -101,4 +101,8 @@ impl FsInfo {
             Self::Dir { .. } => DIR_ICON,
         }
     }
+
+    pub fn is_hidden(&self) -> bool {
+        self.icon().starts_with(".")
+    }
 }

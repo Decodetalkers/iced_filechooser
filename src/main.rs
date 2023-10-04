@@ -1,11 +1,14 @@
 #[allow(unused)]
 mod dirfs;
 
+use std::path::PathBuf;
+
 use iced::executor;
 use iced::widget::{container, text};
 use iced::{Application, Command, Element, Length, Settings, Theme};
 
 pub fn main() -> iced::Result {
+    println!("{:?}", dirfs::ls_dir(&PathBuf::from(".")));
     Example::run(Settings::default())
 }
 
@@ -44,4 +47,3 @@ impl Application for Example {
             .into()
     }
 }
-
