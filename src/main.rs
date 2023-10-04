@@ -1,3 +1,6 @@
+#[allow(unused)]
+mod dirfs;
+
 use iced::executor;
 use iced::widget::{container, text};
 use iced::{Application, Command, Element, Length, Settings, Theme};
