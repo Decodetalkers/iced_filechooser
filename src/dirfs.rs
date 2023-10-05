@@ -13,11 +13,13 @@ use xdg_mime::SharedMimeInfo;
 #[derive(Debug)]
 pub enum FsInfo {
     File {
+        path: PathBuf,
         icon: String,
         permission: [u32; 3],
         name: String,
     },
     Dir {
+        path: PathBuf,
         name: String,
         permission: [u32; 3],
     },
@@ -42,13 +44,18 @@ pub fn ls_dir(dir: &PathBuf) -> Result<Vec<FsInfo>, Box<dyn Error>> {
                 .into_string()
                 .or_else(|f| Err(format!("Invalid entry: {:?}", f)))?;
             let metadata = file.metadata()?;
-            Ok::<(String, Metadata), Box<dyn Error>>((file_name, metadata))
+            let path = file.path();
+            Ok::<(String, PathBuf, Metadata), Box<dyn Error>>((file_name, path, metadata))
         })
         .flatten()
-        .map(|(name, metadata)| {
+        .map(|(name, path, metadata)| {
             let permission = parse_permission(metadata.permissions().mode());
             if metadata.is_dir() {
-                FsInfo::Dir { name, permission }
+                FsInfo::Dir {
+                    path,
+                    name,
+                    permission,
+                }
             } else {
                 let mimeinfo = mime.get_mime_types_from_file_name(&name);
                 let icon = mimeinfo
@@ -56,6 +63,7 @@ pub fn ls_dir(dir: &PathBuf) -> Result<Vec<FsInfo>, Box<dyn Error>> {
                     .and_then(|info| mime.lookup_generic_icon_name(info))
                     .unwrap_or(TEXT_ICON.to_string());
                 FsInfo::File {
+                    path,
                     icon,
                     permission,
                     name,

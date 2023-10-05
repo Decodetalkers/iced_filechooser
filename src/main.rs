@@ -1,24 +1,21 @@
 #[allow(unused)]
 mod dirfs;
 
-use std::path::PathBuf;
-
 use iced::executor;
 use iced::widget::{container, text};
 use iced::{Application, Command, Element, Length, Settings, Theme};
 
 pub fn main() -> iced::Result {
-    println!("{:?}", dirfs::ls_dir(&PathBuf::from(".")));
-    Example::run(Settings::default())
+    FileChooser::run(Settings::default())
 }
 
 #[derive(Default)]
-struct Example {}
+struct FileChooser {}
 
 #[derive(Debug, Clone, Copy)]
 enum Message {}
 
-impl Application for Example {
+impl Application for FileChooser {
     type Message = Message;
     type Flags = ();
     type Executor = executor::Default;
