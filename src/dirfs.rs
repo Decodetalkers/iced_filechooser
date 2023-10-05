@@ -1,5 +1,5 @@
 use iced::widget::{button, column, row, scrollable, text};
-use iced::Element;
+use iced::{Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::{
     error::Error,
@@ -18,17 +18,27 @@ use crate::Message;
 pub struct DirUnit(Vec<FsInfo>);
 
 impl DirUnit {
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self, show_hide: bool) -> Element<Message> {
         let mut rows: Vec<Element<Message>> = vec![];
-        for dir in self.0.chunks_exact(4) {
+        let mut dirs = self.0.clone();
+        if !show_hide {
+            dirs = dirs
+                .iter()
+                .filter(|unit| !unit.is_hidden())
+                .cloned()
+                .collect();
+        }
+        let mut chuncks = dirs.chunks_exact(4);
+        while let Some(dir) = chuncks.next() {
             let mut elements: Vec<Element<Message>> = vec![];
             for unit in dir {
                 elements.push(button(text(unit.name())).into());
             }
-            let row = row(elements);
+            let row = row(elements).spacing(10);
             rows.push(row.into());
         }
-        scrollable(column(rows)).into()
+        println!("{}", chuncks.remainder().len());
+        scrollable(column(rows).spacing(10).padding(10).width(Length::Fill)).into()
     }
 
     pub fn new(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
@@ -138,7 +148,7 @@ impl FsInfo {
     }
 
     pub fn is_hidden(&self) -> bool {
-        self.icon().starts_with(".")
+        self.name().starts_with(".")
     }
 
     pub fn name(&self) -> &str {
