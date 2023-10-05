@@ -1,7 +1,9 @@
-use libc::{S_IRGRP, S_IROTH, S_IRUSR, S_IWGRP, S_IWOTH, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR};
+use iced::widget::{button, column, row, scrollable, text};
+use iced::Element;
+use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::{
     error::Error,
-    fs::{self, DirEntry, Metadata},
+    fs::{self, Metadata},
     os::unix::prelude::PermissionsExt,
     path::PathBuf,
 };
@@ -10,7 +12,31 @@ const DIR_ICON: &str = "text-directory";
 const TEXT_ICON: &str = "text-plain";
 use xdg_mime::SharedMimeInfo;
 
+use crate::Message;
+
 #[derive(Debug)]
+pub struct DirUnit(Vec<FsInfo>);
+
+impl DirUnit {
+    pub fn view(&self) -> Element<Message> {
+        let mut rows: Vec<Element<Message>> = vec![];
+        for dir in self.0.chunks_exact(4) {
+            let mut elements: Vec<Element<Message>> = vec![];
+            for unit in dir {
+                elements.push(button(text(unit.name())).into());
+            }
+            let row = row(elements);
+            rows.push(row.into());
+        }
+        scrollable(column(rows)).into()
+    }
+
+    pub fn new(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
+        Ok(Self(ls_dir(dir)?))
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum FsInfo {
     File {
         path: PathBuf,
@@ -73,6 +99,7 @@ pub fn ls_dir(dir: &PathBuf) -> Result<Vec<FsInfo>, Box<dyn Error>> {
         .collect())
 }
 
+#[allow(unused)]
 impl FsInfo {
     pub fn permission(&self) -> &[u32; 3] {
         match self {
@@ -112,5 +139,12 @@ impl FsInfo {
 
     pub fn is_hidden(&self) -> bool {
         self.icon().starts_with(".")
+    }
+
+    pub fn name(&self) -> &str {
+        match self {
+            FsInfo::Dir { name, .. } => &name,
+            FsInfo::File { name, .. } => &name,
+        }
     }
 }
