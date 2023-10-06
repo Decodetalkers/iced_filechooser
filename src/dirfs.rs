@@ -23,16 +23,12 @@ impl DirUnit {
     pub fn view(&self, show_hide: bool) -> Element<Message> {
         let mut dirs = self.0.clone();
         if !show_hide {
-            dirs = dirs
-                .iter()
-                .filter(|unit| !unit.is_hidden())
-                .cloned()
-                .collect();
+            dirs.retain(|unit| !unit.is_hidden());
         }
 
         let mut grid = Grid::with_column_width(70.0);
         for dir in dirs {
-            grid = grid.push(button(text(dir.name())));
+            grid = grid.push(button(text(dir.name())).padding(10));
         }
         scrollable(grid).into()
     }
@@ -69,17 +65,15 @@ pub fn ls_dir(dir: &PathBuf) -> Result<Vec<FsInfo>, Box<dyn Error>> {
 
     Ok(fs::read_dir(dir)?
         .flatten()
-        .into_iter()
-        .map(|file| {
+        .flat_map(|file| {
             let file_name = file
                 .file_name()
                 .into_string()
-                .or_else(|f| Err(format!("Invalid entry: {:?}", f)))?;
+                .map_err(|f| format!("Invalid entry: {:?}", f))?;
             let metadata = file.metadata()?;
             let path = file.path();
             Ok::<(String, PathBuf, Metadata), Box<dyn Error>>((file_name, path, metadata))
         })
-        .flatten()
         .map(|(name, path, metadata)| {
             let permission = parse_permission(metadata.permissions().mode());
             if metadata.is_dir() {
@@ -144,13 +138,13 @@ impl FsInfo {
     }
 
     pub fn is_hidden(&self) -> bool {
-        self.name().starts_with(".")
+        self.name().starts_with('.')
     }
 
     pub fn name(&self) -> &str {
         match self {
-            FsInfo::Dir { name, .. } => &name,
-            FsInfo::File { name, .. } => &name,
+            FsInfo::Dir { name, .. } => name,
+            FsInfo::File { name, .. } => name,
         }
     }
 }
