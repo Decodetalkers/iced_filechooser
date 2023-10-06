@@ -15,8 +15,10 @@ struct FileChooser {
     dir: DirUnit,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum Message {}
+#[derive(Debug, Clone)]
+pub enum Message {
+    RequestEnter(PathBuf),
+}
 
 impl Application for FileChooser {
     type Message = Message;
@@ -27,7 +29,7 @@ impl Application for FileChooser {
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
         (
             Self {
-                dir: DirUnit::new(&PathBuf::from("/")).unwrap(),
+                dir: DirUnit::enter(&PathBuf::from("/")).unwrap(),
             },
             Command::none(),
         )
@@ -37,7 +39,11 @@ impl Application for FileChooser {
         String::from("Iced Filechooser")
     }
 
-    fn update(&mut self, _message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
+        let Message::RequestEnter(path) = message;
+        if let Ok(dir) = DirUnit::enter(&path) {
+            self.dir = dir;
+        }
         Command::none()
     }
 

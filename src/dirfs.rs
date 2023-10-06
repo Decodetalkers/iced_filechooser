@@ -1,3 +1,4 @@
+use iced::theme;
 use iced::widget::{button, container, scrollable, text};
 use iced::{Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
@@ -32,22 +33,34 @@ impl DirUnit {
 
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
         for dir in dirs {
-            grid = grid.push(
-                container(
-                    button(text(dir.name()))
-                        .padding(10)
-                        .width(BUTTON_WIDTH)
-                        .height(BUTTON_WIDTH),
-                )
-                .height(COLUMN_WIDTH)
-                .center_y()
-                .center_x(),
-            );
+            if dir.is_dir() {
+                let mut dirbtn = button(text(dir.name()))
+                    .padding(10)
+                    .width(BUTTON_WIDTH)
+                    .height(BUTTON_WIDTH);
+                if dir.is_readable() {
+                    dirbtn = dirbtn.on_press(Message::RequestEnter(dir.path()));
+                }
+                grid = grid.push(container(dirbtn).height(COLUMN_WIDTH).center_y().center_x());
+            } else {
+                grid = grid.push(
+                    container(
+                        button(text(dir.name()))
+                            .padding(10)
+                            .style(theme::Button::Positive)
+                            .width(BUTTON_WIDTH)
+                            .height(BUTTON_WIDTH),
+                    )
+                    .height(COLUMN_WIDTH)
+                    .center_y()
+                    .center_x(),
+                );
+            }
         }
         scrollable(container(grid).center_x().width(Length::Fill)).into()
     }
 
-    pub fn new(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
+    pub fn enter(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
         Ok(Self(ls_dir(dir)?))
     }
 }
@@ -151,6 +164,21 @@ impl FsInfo {
         }
     }
 
+    pub fn path(&self) -> PathBuf {
+        match self {
+            FsInfo::Dir {
+                path,
+                name,
+                permission,
+            } => path.clone(),
+            FsInfo::File {
+                path,
+                icon,
+                permission,
+                name,
+            } => path.clone(),
+        }
+    }
     pub fn is_hidden(&self) -> bool {
         self.name().starts_with('.')
     }
