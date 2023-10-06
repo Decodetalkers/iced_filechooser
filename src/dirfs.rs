@@ -72,11 +72,13 @@ pub enum FsInfo {
         icon: String,
         permission: [u32; 3],
         name: String,
+        symlink: Option<PathBuf>,
     },
     Dir {
         path: PathBuf,
         name: String,
         permission: [u32; 3],
+        symlink: Option<PathBuf>,
     },
 }
 
@@ -101,13 +103,38 @@ pub fn ls_dir(dir: &PathBuf) -> Result<Vec<FsInfo>, Box<dyn Error>> {
             let path = file.path();
             Ok::<(String, PathBuf, Metadata), Box<dyn Error>>((file_name, path, metadata))
         })
-        .map(|(name, path, metadata)| {
+        .map(|(name, path, metadata)| 'outputblock: {
             let permission = parse_permission(metadata.permissions().mode());
+            if metadata.is_symlink() {
+                let realpath = fs::read_link(&path).unwrap();
+                if path.is_dir() {
+                    break 'outputblock FsInfo::Dir {
+                        path,
+                        name,
+                        permission,
+                        symlink: Some(realpath),
+                    };
+                } else {
+                    let mimeinfo = mime.get_mime_types_from_file_name(&name);
+                    let icon = mimeinfo
+                        .first()
+                        .and_then(|info| mime.lookup_generic_icon_name(info))
+                        .unwrap_or(TEXT_ICON.to_string());
+                    break 'outputblock FsInfo::File {
+                        path,
+                        icon,
+                        permission,
+                        name,
+                        symlink: Some(realpath),
+                    };
+                }
+            }
             if metadata.is_dir() {
                 FsInfo::Dir {
                     path,
                     name,
                     permission,
+                    symlink: None,
                 }
             } else {
                 let mimeinfo = mime.get_mime_types_from_file_name(&name);
@@ -120,6 +147,7 @@ pub fn ls_dir(dir: &PathBuf) -> Result<Vec<FsInfo>, Box<dyn Error>> {
                     icon,
                     permission,
                     name,
+                    symlink: None,
                 }
             }
         })
@@ -166,21 +194,20 @@ impl FsInfo {
 
     pub fn path(&self) -> PathBuf {
         match self {
-            FsInfo::Dir {
-                path,
-                name,
-                permission,
-            } => path.clone(),
-            FsInfo::File {
-                path,
-                icon,
-                permission,
-                name,
-            } => path.clone(),
+            FsInfo::Dir { path, .. } => path.clone(),
+            FsInfo::File { path, .. } => path.clone(),
         }
     }
+
     pub fn is_hidden(&self) -> bool {
         self.name().starts_with('.')
+    }
+
+    pub fn is_symlink(&self) -> bool {
+        match self {
+            FsInfo::Dir { symlink, .. } => symlink.is_some(),
+            FsInfo::File { symlink, .. } => symlink.is_some(),
+        }
     }
 
     pub fn name(&self) -> &str {
