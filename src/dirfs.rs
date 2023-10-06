@@ -5,7 +5,6 @@ use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::{
     error::Error,
     fs::{self, Metadata},
-    os::unix::prelude::PermissionsExt,
     path::PathBuf,
 };
 
@@ -104,7 +103,8 @@ pub fn ls_dir(dir: &PathBuf) -> Result<Vec<FsInfo>, Box<dyn Error>> {
             Ok::<(String, PathBuf, Metadata), Box<dyn Error>>((file_name, path, metadata))
         })
         .map(|(name, path, metadata)| 'outputblock: {
-            let permission = parse_permission(metadata.permissions().mode());
+            use std::os::unix::fs::MetadataExt;
+            let permission = parse_permission(metadata.mode());
             if metadata.is_symlink() {
                 let realpath = fs::read_link(&path).unwrap();
                 if path.is_dir() {
@@ -171,18 +171,17 @@ impl FsInfo {
     }
 
     pub fn is_readable(&self) -> bool {
-        let [r, _, _] = self.permission();
-        *r != 0
+        self.is_dir() && self.path().read_dir().is_ok()
     }
 
     pub fn is_writeable(&self) -> bool {
         let [_, w, _] = self.permission();
-        *w != 0
+        *w == S_IWUSR
     }
 
     pub fn is_excutable(&self) -> bool {
         let [_, _, e] = self.permission();
-        *e != 0
+        *e == S_IXUSR
     }
 
     pub fn icon(&self) -> &str {
