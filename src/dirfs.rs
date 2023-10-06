@@ -1,5 +1,5 @@
-use iced::widget::{button, column, row, scrollable, text};
-use iced::{Element, Length};
+use iced::widget::{button, scrollable, text};
+use iced::Element;
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::{
     error::Error,
@@ -7,6 +7,8 @@ use std::{
     os::unix::prelude::PermissionsExt,
     path::PathBuf,
 };
+
+use iced_aw::Grid;
 
 const DIR_ICON: &str = "text-directory";
 const TEXT_ICON: &str = "text-plain";
@@ -19,7 +21,6 @@ pub struct DirUnit(Vec<FsInfo>);
 
 impl DirUnit {
     pub fn view(&self, show_hide: bool) -> Element<Message> {
-        let mut rows: Vec<Element<Message>> = vec![];
         let mut dirs = self.0.clone();
         if !show_hide {
             dirs = dirs
@@ -28,17 +29,12 @@ impl DirUnit {
                 .cloned()
                 .collect();
         }
-        let mut chuncks = dirs.chunks_exact(4);
-        while let Some(dir) = chuncks.next() {
-            let mut elements: Vec<Element<Message>> = vec![];
-            for unit in dir {
-                elements.push(button(text(unit.name())).into());
-            }
-            let row = row(elements).spacing(10);
-            rows.push(row.into());
+
+        let mut grid = Grid::with_column_width(70.0);
+        for dir in dirs {
+            grid = grid.push(button(text(dir.name())));
         }
-        println!("{}", chuncks.remainder().len());
-        scrollable(column(rows).spacing(10).padding(10).width(Length::Fill)).into()
+        scrollable(grid).into()
     }
 
     pub fn new(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
