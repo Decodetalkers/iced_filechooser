@@ -1,5 +1,5 @@
-use iced::widget::{button, scrollable, text};
-use iced::Element;
+use iced::widget::{button, container, scrollable, text};
+use iced::{Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::{
     error::Error,
@@ -16,6 +16,10 @@ use xdg_mime::SharedMimeInfo;
 
 use crate::Message;
 
+const COLUMN_WIDTH: f32 = 160.0;
+
+const BUTTON_WIDTH: f32 = 150.0;
+
 #[derive(Debug)]
 pub struct DirUnit(Vec<FsInfo>);
 
@@ -26,11 +30,21 @@ impl DirUnit {
             dirs.retain(|unit| !unit.is_hidden());
         }
 
-        let mut grid = Grid::with_column_width(70.0);
+        let mut grid = Grid::with_column_width(COLUMN_WIDTH);
         for dir in dirs {
-            grid = grid.push(button(text(dir.name())).padding(10));
+            grid = grid.push(
+                container(
+                    button(text(dir.name()))
+                        .padding(10)
+                        .width(BUTTON_WIDTH)
+                        .height(BUTTON_WIDTH),
+                )
+                .height(COLUMN_WIDTH)
+                .center_y()
+                .center_x(),
+            );
         }
-        scrollable(grid).into()
+        scrollable(container(grid).center_x().width(Length::Fill)).into()
     }
 
     pub fn new(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
