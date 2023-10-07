@@ -1,5 +1,5 @@
 use iced::theme;
-use iced::widget::{button, container, scrollable, text};
+use iced::widget::{button, container, scrollable, svg, text};
 use iced::{Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::{
@@ -10,6 +10,7 @@ use std::{
 
 use iced_aw::Grid;
 
+static IMAGE: &[u8] = include_bytes!("../resources/text-plain.svg");
 const DIR_ICON: &str = "text-directory";
 const TEXT_ICON: &str = "text-plain";
 use xdg_mime::SharedMimeInfo;
@@ -30,6 +31,7 @@ impl DirUnit {
             dirs.retain(|unit| !unit.is_hidden());
         }
 
+        let handle = svg::Handle::from_memory(IMAGE);
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
         for dir in dirs {
             if dir.is_dir() {
@@ -44,7 +46,7 @@ impl DirUnit {
             } else {
                 grid = grid.push(
                     container(
-                        button(text(dir.name()))
+                        button(svg(handle.clone()))
                             .padding(10)
                             .style(theme::Button::Positive)
                             .width(BUTTON_WIDTH)
