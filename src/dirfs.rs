@@ -15,14 +15,14 @@ static MIME: Lazy<SharedMimeInfo> = Lazy::new(SharedMimeInfo::new);
 
 static TEXT_IMAGE: &[u8] = include_bytes!("../resources/text-plain.svg");
 
-static DIR_IMAGE: &[u8] = include_bytes!("../resources/text-directory.svg");
+static DIR_IMAGE: &[u8] = include_bytes!("../resources/inode-directory.svg");
 
-const DIR_ICON: &str = "text-directory";
+const DIR_ICON: &str = "inode-directory";
 const TEXT_ICON: &str = "text-plain";
 
 use crate::Message;
 
-const COLUMN_WIDTH: f32 = 160.0;
+const COLUMN_WIDTH: f32 = 180.0;
 
 const BUTTON_WIDTH: f32 = 150.0;
 
@@ -220,39 +220,49 @@ impl FsInfo {
         let text_handle = svg::Handle::from_memory(TEXT_IMAGE);
         let dir_handle = svg::Handle::from_memory(DIR_IMAGE);
         if self.is_dir() {
-            let mut dirbtn = button(column![
-                svg(dir_handle),
+            let mut dirbtn = button(svg(dir_handle))
+                .padding(10)
+                .width(BUTTON_WIDTH)
+                .height(BUTTON_WIDTH);
+            if self.is_readable() {
+                dirbtn = dirbtn.on_press(Message::RequestEnter(self.path()));
+            }
+            let tocontainer = column![
+                dirbtn,
                 container(
                     text(self.name())
-                        .width(Length::Fill)
+                        .width(BUTTON_WIDTH)
                         .horizontal_alignment(alignment::Horizontal::Center)
                 )
                 .width(Length::Fill)
                 .height(Length::Fill)
-            ])
-            .padding(10)
-            .width(BUTTON_WIDTH)
-            .height(BUTTON_WIDTH);
-            if self.is_readable() {
-                dirbtn = dirbtn.on_press(Message::RequestEnter(self.path()));
-            }
-            container(dirbtn)
+            ];
+            container(tocontainer)
                 .height(COLUMN_WIDTH)
                 .width(Length::Fill)
                 .center_x()
                 .into()
         } else {
-            container(
-                button(svg(text_handle))
-                    .padding(10)
-                    .style(theme::Button::Positive)
-                    .width(BUTTON_WIDTH)
-                    .height(BUTTON_WIDTH),
-            )
-            .height(COLUMN_WIDTH)
-            .width(Length::Fill)
-            .center_x()
-            .into()
+            let btn = button(svg(text_handle))
+                .padding(10)
+                .style(theme::Button::Positive)
+                .width(BUTTON_WIDTH)
+                .height(BUTTON_WIDTH);
+            let tocontainer = column![
+                btn,
+                container(
+                    text(self.name())
+                        .width(BUTTON_WIDTH)
+                        .horizontal_alignment(alignment::Horizontal::Center)
+                )
+                .width(Length::Fill)
+                .height(Length::Fill)
+            ];
+            container(tocontainer)
+                .height(COLUMN_WIDTH)
+                .width(Length::Fill)
+                .center_x()
+                .into()
         }
     }
 }
