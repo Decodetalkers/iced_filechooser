@@ -11,7 +11,7 @@ use xdg_mime::SharedMimeInfo;
 
 use once_cell::sync::Lazy;
 
-static MIME: Lazy<SharedMimeInfo> = Lazy::new(|| SharedMimeInfo::new());
+static MIME: Lazy<SharedMimeInfo> = Lazy::new(SharedMimeInfo::new);
 
 static IMAGE: &[u8] = include_bytes!("../resources/text-plain.svg");
 const DIR_ICON: &str = "text-directory";
@@ -149,7 +149,7 @@ pub fn ls_dir_pre(dir: &PathBuf) -> Result<std::iter::Flatten<ReadDir>, Box<dyn 
     if !dir.is_dir() {
         return Err("Dir is not file".into());
     }
-    Ok(fs::read_dir(dir)?.flatten().into_iter())
+    Ok(fs::read_dir(dir)?.flatten())
 }
 
 #[allow(unused)]
