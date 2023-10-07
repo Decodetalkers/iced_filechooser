@@ -1184,6 +1184,7 @@ dependencies = [
  "iced_futures 0.6.0",
  "iced_native",
  "libc",
+ "once_cell",
  "tokio",
  "users",
  "xdg-mime",

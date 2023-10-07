@@ -2,6 +2,7 @@ use iced::theme;
 use iced::widget::{button, container, scrollable, svg, text};
 use iced::{Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
+use std::fs::ReadDir;
 use std::{
     error::Error,
     fs::{self, Metadata},
@@ -10,10 +11,15 @@ use std::{
 
 use iced_aw::Grid;
 
+use xdg_mime::SharedMimeInfo;
+
+use once_cell::sync::Lazy;
+
+static MIME: Lazy<SharedMimeInfo> = Lazy::new(|| SharedMimeInfo::new());
+
 static IMAGE: &[u8] = include_bytes!("../resources/text-plain.svg");
 const DIR_ICON: &str = "text-directory";
 const TEXT_ICON: &str = "text-plain";
-use xdg_mime::SharedMimeInfo;
 
 use crate::Message;
 
@@ -22,7 +28,9 @@ const COLUMN_WIDTH: f32 = 160.0;
 const BUTTON_WIDTH: f32 = 150.0;
 
 #[derive(Debug)]
-pub struct DirUnit(Vec<FsInfo>);
+pub struct DirUnit {
+    infos: Vec<FsInfo>,
+}
 
 impl DirUnit {
     pub fn view(&self, show_hide: bool) -> Element<Message> {
@@ -38,11 +46,13 @@ impl DirUnit {
     }
 
     pub fn enter(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
-        Ok(Self(ls_dir(dir)?))
+        Ok(Self {
+            infos: ls_dir(dir)?,
+        })
     }
 
     fn fs_infos(&self) -> &Vec<FsInfo> {
-        &self.0
+        &self.infos
     }
 }
 
@@ -67,11 +77,19 @@ fn parse_permission(mode: u32) -> [u32; 3] {
     [mode & S_IRUSR, mode & S_IWUSR, mode & S_IXUSR]
 }
 
+#[allow(unused)]
+pub fn ls_dir_pre(dir: &PathBuf) -> Result<std::iter::Flatten<ReadDir>, Box<dyn Error>> {
+    if !dir.is_dir() {
+        return Err("Dir is not file".into());
+    }
+    Ok(fs::read_dir(dir)?.flatten().into_iter())
+}
+
 pub fn ls_dir(dir: &PathBuf) -> Result<Vec<FsInfo>, Box<dyn Error>> {
     if !dir.is_dir() {
         return Err("Dir is not file".into());
     }
-    let mime = SharedMimeInfo::new();
+    let mime = &MIME;
 
     Ok(fs::read_dir(dir)?
         .flatten()
