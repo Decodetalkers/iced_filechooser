@@ -26,15 +26,14 @@ pub struct DirUnit(Vec<FsInfo>);
 
 impl DirUnit {
     pub fn view(&self, show_hide: bool) -> Element<Message> {
-        let mut dirs = self.0.clone();
-        if !show_hide {
-            dirs.retain(|unit| !unit.is_hidden());
-        }
-
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
-        for dir in dirs {
+        for dir in self.0.iter() {
+            if !show_hide && dir.is_hidden() {
+                continue;
+            }
             grid = grid.push(dir.view());
         }
+
         scrollable(container(grid).center_x().width(Length::Fill)).into()
     }
 
@@ -195,7 +194,7 @@ impl FsInfo {
         }
     }
 
-    fn view(&self) -> Element<'static, Message> {
+    fn view(&self) -> Element<Message> {
         let handle = svg::Handle::from_memory(IMAGE);
         if self.is_dir() {
             let mut dirbtn = button(text(self.name()))
