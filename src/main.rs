@@ -17,6 +17,7 @@ struct FileChooser {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    RequestNext,
     RequestEnter(PathBuf),
 }
 
@@ -31,7 +32,7 @@ impl Application for FileChooser {
             Self {
                 dir: DirUnit::enter(&PathBuf::from("/")).unwrap(),
             },
-            Command::none(),
+            Command::perform(async {}, |_| Message::RequestNext),
         )
     }
 
@@ -40,11 +41,24 @@ impl Application for FileChooser {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        let Message::RequestEnter(path) = message;
-        if let Ok(dir) = DirUnit::enter(&path) {
-            self.dir = dir;
+        match message {
+            Message::RequestNext => {
+                self.dir.polldir().ok();
+                if self.dir.ls_end() {
+                    Command::none()
+                } else {
+                    Command::perform(async {}, |_| Message::RequestNext)
+                }
+            }
+            Message::RequestEnter(path) => {
+                if let Ok(dir) = DirUnit::enter(&path) {
+                    self.dir = dir;
+                    Command::perform(async {}, |_| Message::RequestNext)
+                } else {
+                    Command::none()
+                }
+            }
         }
-        Command::none()
     }
 
     fn view(&self) -> Element<Message> {

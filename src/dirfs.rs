@@ -3,11 +3,7 @@ use iced::widget::{button, container, scrollable, svg, text};
 use iced::{Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::fs::ReadDir;
-use std::{
-    error::Error,
-    fs::{self, Metadata},
-    path::PathBuf,
-};
+use std::{error::Error, fs, path::PathBuf};
 
 use iced_aw::Grid;
 
@@ -29,6 +25,8 @@ const BUTTON_WIDTH: f32 = 150.0;
 
 #[derive(Debug)]
 pub struct DirUnit {
+    is_end: bool,
+    iter: std::iter::Flatten<ReadDir>,
     infos: Vec<FsInfo>,
 }
 
@@ -47,8 +45,77 @@ impl DirUnit {
 
     pub fn enter(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
         Ok(Self {
-            infos: ls_dir(dir)?,
+            is_end: false,
+            iter: ls_dir_pre(dir)?,
+            infos: Vec::new(),
         })
+    }
+
+    pub fn ls_end(&self) -> bool {
+        self.is_end
+    }
+
+    pub fn polldir(&mut self) -> Result<(), Box<dyn Error>> {
+        let Some(file) = self.iter.next() else {
+            self.is_end = true;
+            return Ok(());
+        };
+        let name = file
+            .file_name()
+            .into_string()
+            .map_err(|f| format!("Invalid entry: {:?}", f))?;
+        let metadata = file.metadata()?;
+        let path = file.path();
+        use std::os::unix::fs::MetadataExt;
+        let permission = parse_permission(metadata.mode());
+        let mime = &MIME;
+        if metadata.is_symlink() {
+            let realpath = fs::read_link(&path).unwrap();
+            if path.is_dir() {
+                self.infos.push(FsInfo::Dir {
+                    path,
+                    name,
+                    permission,
+                    symlink: Some(realpath),
+                });
+            } else {
+                let mimeinfo = mime.get_mime_types_from_file_name(&name);
+                let icon = mimeinfo
+                    .first()
+                    .and_then(|info| mime.lookup_generic_icon_name(info))
+                    .unwrap_or(TEXT_ICON.to_string());
+                self.infos.push(FsInfo::File {
+                    path,
+                    icon,
+                    permission,
+                    name,
+                    symlink: Some(realpath),
+                });
+            }
+            return Ok(());
+        }
+        if metadata.is_dir() {
+            self.infos.push(FsInfo::Dir {
+                path,
+                name,
+                permission,
+                symlink: None,
+            });
+        } else {
+            let mimeinfo = mime.get_mime_types_from_file_name(&name);
+            let icon = mimeinfo
+                .first()
+                .and_then(|info| mime.lookup_generic_icon_name(info))
+                .unwrap_or(TEXT_ICON.to_string());
+            self.infos.push(FsInfo::File {
+                path,
+                icon,
+                permission,
+                name,
+                symlink: None,
+            })
+        }
+        Ok(())
     }
 
     fn fs_infos(&self) -> &Vec<FsInfo> {
@@ -83,75 +150,6 @@ pub fn ls_dir_pre(dir: &PathBuf) -> Result<std::iter::Flatten<ReadDir>, Box<dyn 
         return Err("Dir is not file".into());
     }
     Ok(fs::read_dir(dir)?.flatten().into_iter())
-}
-
-pub fn ls_dir(dir: &PathBuf) -> Result<Vec<FsInfo>, Box<dyn Error>> {
-    if !dir.is_dir() {
-        return Err("Dir is not file".into());
-    }
-    let mime = &MIME;
-
-    Ok(fs::read_dir(dir)?
-        .flatten()
-        .flat_map(|file| {
-            let file_name = file
-                .file_name()
-                .into_string()
-                .map_err(|f| format!("Invalid entry: {:?}", f))?;
-            let metadata = file.metadata()?;
-            let path = file.path();
-            Ok::<(String, PathBuf, Metadata), Box<dyn Error>>((file_name, path, metadata))
-        })
-        .map(|(name, path, metadata)| 'outputblock: {
-            use std::os::unix::fs::MetadataExt;
-            let permission = parse_permission(metadata.mode());
-            if metadata.is_symlink() {
-                let realpath = fs::read_link(&path).unwrap();
-                if path.is_dir() {
-                    break 'outputblock FsInfo::Dir {
-                        path,
-                        name,
-                        permission,
-                        symlink: Some(realpath),
-                    };
-                } else {
-                    let mimeinfo = mime.get_mime_types_from_file_name(&name);
-                    let icon = mimeinfo
-                        .first()
-                        .and_then(|info| mime.lookup_generic_icon_name(info))
-                        .unwrap_or(TEXT_ICON.to_string());
-                    break 'outputblock FsInfo::File {
-                        path,
-                        icon,
-                        permission,
-                        name,
-                        symlink: Some(realpath),
-                    };
-                }
-            }
-            if metadata.is_dir() {
-                FsInfo::Dir {
-                    path,
-                    name,
-                    permission,
-                    symlink: None,
-                }
-            } else {
-                let mimeinfo = mime.get_mime_types_from_file_name(&name);
-                let icon = mimeinfo
-                    .first()
-                    .and_then(|info| mime.lookup_generic_icon_name(info))
-                    .unwrap_or(TEXT_ICON.to_string());
-                FsInfo::File {
-                    path,
-                    icon,
-                    permission,
-                    name,
-                    symlink: None,
-                }
-            }
-        })
-        .collect())
 }
 
 #[allow(unused)]
