@@ -27,7 +27,7 @@ pub struct DirUnit(Vec<FsInfo>);
 impl DirUnit {
     pub fn view(&self, show_hide: bool) -> Element<Message> {
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
-        for dir in self.0.iter() {
+        for dir in self.fs_infos() {
             if !show_hide && dir.is_hidden() {
                 continue;
             }
@@ -39,6 +39,10 @@ impl DirUnit {
 
     pub fn enter(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
         Ok(Self(ls_dir(dir)?))
+    }
+
+    fn fs_infos(&self) -> &Vec<FsInfo> {
+        &self.0
     }
 }
 
