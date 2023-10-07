@@ -31,32 +31,9 @@ impl DirUnit {
             dirs.retain(|unit| !unit.is_hidden());
         }
 
-        let handle = svg::Handle::from_memory(IMAGE);
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
         for dir in dirs {
-            if dir.is_dir() {
-                let mut dirbtn = button(text(dir.name()))
-                    .padding(10)
-                    .width(BUTTON_WIDTH)
-                    .height(BUTTON_WIDTH);
-                if dir.is_readable() {
-                    dirbtn = dirbtn.on_press(Message::RequestEnter(dir.path()));
-                }
-                grid = grid.push(container(dirbtn).height(COLUMN_WIDTH).center_y().center_x());
-            } else {
-                grid = grid.push(
-                    container(
-                        button(svg(handle.clone()))
-                            .padding(10)
-                            .style(theme::Button::Positive)
-                            .width(BUTTON_WIDTH)
-                            .height(BUTTON_WIDTH),
-                    )
-                    .height(COLUMN_WIDTH)
-                    .center_y()
-                    .center_x(),
-                );
-            }
+            grid = grid.push(dir.view());
         }
         scrollable(container(grid).center_x().width(Length::Fill)).into()
     }
@@ -215,6 +192,36 @@ impl FsInfo {
         match self {
             FsInfo::Dir { name, .. } => name,
             FsInfo::File { name, .. } => name,
+        }
+    }
+
+    fn view(&self) -> Element<'static, Message> {
+        let handle = svg::Handle::from_memory(IMAGE);
+        if self.is_dir() {
+            let mut dirbtn = button(text(self.name()))
+                .padding(10)
+                .width(BUTTON_WIDTH)
+                .height(BUTTON_WIDTH);
+            if self.is_readable() {
+                dirbtn = dirbtn.on_press(Message::RequestEnter(self.path()));
+            }
+            container(dirbtn)
+                .height(COLUMN_WIDTH)
+                .center_y()
+                .center_x()
+                .into()
+        } else {
+            container(
+                button(svg(handle))
+                    .padding(10)
+                    .style(theme::Button::Positive)
+                    .width(BUTTON_WIDTH)
+                    .height(BUTTON_WIDTH),
+            )
+            .height(COLUMN_WIDTH)
+            .center_y()
+            .center_x()
+            .into()
         }
     }
 }
