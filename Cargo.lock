@@ -1179,6 +1179,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "env_logger",
+ "glob",
  "iced",
  "iced_aw",
  "iced_futures 0.6.0",

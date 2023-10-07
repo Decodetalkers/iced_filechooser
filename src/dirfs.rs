@@ -7,6 +7,8 @@ use std::{error::Error, fs, path::PathBuf};
 
 use iced_aw::Grid;
 
+use crate::utils::get_icon;
+
 use xdg_mime::SharedMimeInfo;
 
 use once_cell::sync::Lazy;
@@ -47,11 +49,18 @@ impl DirUnit {
     }
 
     pub fn enter(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
-        Ok(Self {
+        let (count, iter) = ls_dir_pre(dir)?;
+        let mut enterdir = Self {
             is_end: false,
-            iter: ls_dir_pre(dir)?,
+            iter,
             infos: Vec::new(),
-        })
+        };
+        if count < 1000 {
+            while !enterdir.is_end {
+                let _ = enterdir.polldir();
+            }
+        }
+        Ok(enterdir)
     }
 
     pub fn ls_end(&self) -> bool {
@@ -153,11 +162,12 @@ fn parse_permission(mode: u32) -> [u32; 3] {
     [mode & S_IRUSR, mode & S_IWUSR, mode & S_IXUSR]
 }
 
-pub fn ls_dir_pre(dir: &PathBuf) -> Result<std::iter::Flatten<ReadDir>, Box<dyn Error>> {
+fn ls_dir_pre(dir: &PathBuf) -> Result<(usize, std::iter::Flatten<ReadDir>), Box<dyn Error>> {
     if !dir.is_dir() {
         return Err("Dir is not file".into());
     }
-    Ok(fs::read_dir(dir)?.flatten())
+    let count = fs::read_dir(dir)?.count();
+    Ok((count, fs::read_dir(dir)?.flatten()))
 }
 
 #[allow(unused)]
@@ -222,11 +232,21 @@ impl FsInfo {
         }
     }
 
-    fn view(&self) -> Element<Message> {
-        let text_handle = svg::Handle::from_memory(TEXT_IMAGE);
-        let dir_handle = svg::Handle::from_memory(DIR_IMAGE);
+    fn get_icon_handle(&self) -> svg::Handle {
+        if let Some(icon) = get_icon("Adwaita", self.icon()) {
+            return svg::Handle::from_path(icon);
+        }
         if self.is_dir() {
-            let mut dirbtn = button(svg(dir_handle))
+            svg::Handle::from_memory(DIR_IMAGE)
+        } else {
+            svg::Handle::from_memory(TEXT_IMAGE)
+        }
+    }
+
+    fn view(&self) -> Element<Message> {
+        let icon_handle = self.get_icon_handle();
+        if self.is_dir() {
+            let mut dirbtn = button(svg(icon_handle))
                 .padding(10)
                 .width(BUTTON_WIDTH)
                 .height(BUTTON_WIDTH);
@@ -249,7 +269,7 @@ impl FsInfo {
                 .center_x()
                 .into()
         } else {
-            let btn = button(svg(text_handle))
+            let btn = button(svg(icon_handle))
                 .padding(10)
                 .style(theme::Button::Positive)
                 .width(BUTTON_WIDTH)
