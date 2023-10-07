@@ -144,7 +144,6 @@ fn parse_permission(mode: u32) -> [u32; 3] {
     [mode & S_IRUSR, mode & S_IWUSR, mode & S_IXUSR]
 }
 
-#[allow(unused)]
 pub fn ls_dir_pre(dir: &PathBuf) -> Result<std::iter::Flatten<ReadDir>, Box<dyn Error>> {
     if !dir.is_dir() {
         return Err("Dir is not file".into());
