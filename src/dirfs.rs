@@ -1,5 +1,5 @@
-use iced::theme;
-use iced::widget::{button, container, scrollable, svg, text};
+use iced::widget::{button, column, container, scrollable, svg, text};
+use iced::{alignment, theme};
 use iced::{Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::fs::ReadDir;
@@ -13,7 +13,10 @@ use once_cell::sync::Lazy;
 
 static MIME: Lazy<SharedMimeInfo> = Lazy::new(SharedMimeInfo::new);
 
-static IMAGE: &[u8] = include_bytes!("../resources/text-plain.svg");
+static TEXT_IMAGE: &[u8] = include_bytes!("../resources/text-plain.svg");
+
+static DIR_IMAGE: &[u8] = include_bytes!("../resources/text-directory.svg");
+
 const DIR_ICON: &str = "text-directory";
 const TEXT_ICON: &str = "text-plain";
 
@@ -214,30 +217,40 @@ impl FsInfo {
     }
 
     fn view(&self) -> Element<Message> {
-        let handle = svg::Handle::from_memory(IMAGE);
+        let text_handle = svg::Handle::from_memory(TEXT_IMAGE);
+        let dir_handle = svg::Handle::from_memory(DIR_IMAGE);
         if self.is_dir() {
-            let mut dirbtn = button(text(self.name()))
-                .padding(10)
-                .width(BUTTON_WIDTH)
-                .height(BUTTON_WIDTH);
+            let mut dirbtn = button(column![
+                svg(dir_handle),
+                container(
+                    text(self.name())
+                        .width(Length::Fill)
+                        .horizontal_alignment(alignment::Horizontal::Center)
+                )
+                .width(Length::Fill)
+                .height(Length::Fill)
+            ])
+            .padding(10)
+            .width(BUTTON_WIDTH)
+            .height(BUTTON_WIDTH);
             if self.is_readable() {
                 dirbtn = dirbtn.on_press(Message::RequestEnter(self.path()));
             }
             container(dirbtn)
                 .height(COLUMN_WIDTH)
-                .center_y()
+                .width(Length::Fill)
                 .center_x()
                 .into()
         } else {
             container(
-                button(svg(handle))
+                button(svg(text_handle))
                     .padding(10)
                     .style(theme::Button::Positive)
                     .width(BUTTON_WIDTH)
                     .height(BUTTON_WIDTH),
             )
             .height(COLUMN_WIDTH)
-            .center_y()
+            .width(Length::Fill)
             .center_x()
             .into()
         }
