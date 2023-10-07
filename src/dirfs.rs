@@ -118,6 +118,12 @@ impl DirUnit {
                 symlink: None,
             })
         }
+        self.infos.sort_by(|a, b| {
+            a.name()
+                .to_string()
+                .partial_cmp(&b.name().to_string())
+                .unwrap()
+        });
         Ok(())
     }
 
