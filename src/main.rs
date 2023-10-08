@@ -19,6 +19,7 @@ struct FileChooser {
 pub enum Message {
     Check,
     RequestNext,
+    RequestSelect,
     RequestEnter(PathBuf),
 }
 

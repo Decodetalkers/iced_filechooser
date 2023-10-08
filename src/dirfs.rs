@@ -248,7 +248,7 @@ impl FsInfo {
 
     fn view(&self, select_dir: bool) -> Element<Message> {
         let icon_handle = self.get_icon_handle();
-        let mut dirbtn = button(svg(icon_handle))
+        let mut file_btn = button(svg(icon_handle))
             .padding(10)
             .width(BUTTON_WIDTH)
             .height(BUTTON_WIDTH);
@@ -257,14 +257,16 @@ impl FsInfo {
 
         let can_selected = self.is_readable() && (self.is_dir() == select_dir);
         if dir_can_enter || can_selected {
-            dirbtn = dirbtn.style(theme::Button::Secondary);
+            file_btn = file_btn.style(theme::Button::Secondary);
         }
+
         if dir_can_enter {
-            dirbtn = dirbtn.on_press(Message::RequestEnter(self.path()));
+            file_btn = file_btn.on_press(Message::RequestEnter(self.path()));
         }
 
         let bottom_text: Element<Message> = if can_selected {
-            container(checkbox(self.name(), false, |_| Message::Check))
+            file_btn = file_btn.on_press(Message::RequestSelect);
+            container(checkbox(self.name(), false, |_| Message::Check).width(BUTTON_WIDTH))
                 .width(Length::Fill)
                 .into()
         } else {
@@ -277,7 +279,7 @@ impl FsInfo {
             .into()
         };
 
-        let tocontainer = column![dirbtn, bottom_text];
+        let tocontainer = column![file_btn, bottom_text];
         container(tocontainer)
             .height(COLUMN_WIDTH)
             .width(Length::Fill)
