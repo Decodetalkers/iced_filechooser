@@ -15,13 +15,14 @@ struct FileChooser {
     dir: DirUnit,
     showhide: bool,
     preview_big_image: bool,
+    current_selected: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     Check,
     RequestNext,
-    RequestSelect,
+    RequestSelect(PathBuf),
     RequestEnter(PathBuf),
     RequestShowHide(bool),
     RequestShowImage(bool),
@@ -39,6 +40,7 @@ impl Application for FileChooser {
                 dir: DirUnit::enter(&PathBuf::from(".")).unwrap(),
                 showhide: false,
                 preview_big_image: false,
+                current_selected: None,
             },
             Command::perform(async {}, |_| Message::RequestNext),
         )
@@ -74,11 +76,27 @@ impl Application for FileChooser {
                 self.preview_big_image = showimage;
                 Command::none()
             }
+            Message::RequestSelect(path) => {
+                if self.current_selected.clone().is_some_and(|p| {
+                    p.canonicalize().unwrap().as_os_str()
+                        == path.canonicalize().unwrap().as_os_str()
+                }) {
+                    self.current_selected = None;
+                } else {
+                    self.current_selected = Some(path);
+                }
+                Command::none()
+            }
             _ => Command::none(),
         }
     }
 
     fn view(&self) -> Element<Message> {
-        self.dir.view(self.showhide, self.preview_big_image, false)
+        self.dir.view(
+            self.showhide,
+            self.preview_big_image,
+            &self.current_selected,
+            false,
+        )
     }
 }

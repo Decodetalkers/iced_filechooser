@@ -76,11 +76,17 @@ impl DirUnit {
             .into()
     }
 
-    pub fn view(&self, show_hide: bool, preview_image: bool, select_dir: bool) -> Element<Message> {
+    pub fn view(
+        &self,
+        show_hide: bool,
+        preview_image: bool,
+        current_selected: &Option<PathBuf>,
+        select_dir: bool,
+    ) -> Element<Message> {
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
         let filter_way = |dir: &&FsInfo| show_hide || !dir.is_hidden();
         for dir in self.fs_infos().iter().filter(filter_way) {
-            grid = grid.push(dir.view(select_dir, preview_image));
+            grid = grid.push(dir.view(select_dir, preview_image, current_selected));
         }
         //let mainview = column![grid, self.title_bar(show_hide)];
         let bottom = scrollable(container(grid).center_x().width(Length::Fill));
@@ -369,11 +375,21 @@ impl FsInfo {
         svg(self.get_icon_handle()).into()
     }
 
-    fn view(&self, select_dir: bool, preview_image: bool) -> Element<Message> {
+    fn view(
+        &self,
+        select_dir: bool,
+        preview_image: bool,
+        current_selected: &Option<PathBuf>,
+    ) -> Element<Message> {
         let mut file_btn = button(self.get_icon(preview_image))
             .padding(10)
             .width(BUTTON_WIDTH)
             .height(BUTTON_WIDTH);
+
+        let is_selected = current_selected.as_ref().is_some_and(|path| {
+            path.canonicalize().unwrap().as_os_str()
+                == self.path().canonicalize().unwrap().as_os_str()
+        });
 
         let dir_can_enter = self.is_dir() && self.is_readable();
 
@@ -387,7 +403,10 @@ impl FsInfo {
         }
 
         let bottom_text: Element<Message> = if can_selected {
-            file_btn = file_btn.on_press(Message::RequestSelect);
+            file_btn = file_btn.on_press(Message::RequestSelect(self.path().clone()));
+            if is_selected {
+                file_btn = file_btn.style(theme::Button::Primary);
+            }
             container(checkbox(self.name(), false, |_| Message::Check).width(BUTTON_WIDTH))
                 .width(Length::Fill)
                 .into()
