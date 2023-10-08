@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use iced_aw::Grid;
+use iced_aw::{split, Grid, Split};
 
 use crate::utils::get_icon;
 
@@ -87,6 +87,7 @@ impl DirUnit {
         &self,
         show_hide: bool,
         preview_image: bool,
+        right_spliter: &Option<u16>,
         current_selected: &Option<PathBuf>,
         select_dir: bool,
     ) -> Element<Message> {
@@ -99,10 +100,16 @@ impl DirUnit {
 
         let rightviewinfo = current_selected.as_ref().and_then(|p| self.find_unit(p));
         let bottom: Element<Message> = match rightviewinfo {
-            Some(info) => row![scrollable(grid), info.right_view()]
-                .width(Length::Fill)
-                .padding(10)
-                .into(),
+            Some(info) => Split::new(
+                scrollable(container(grid).center_x().width(Length::Fill)),
+                info.right_view(),
+                right_spliter.clone(),
+                split::Axis::Vertical,
+                Message::RequestAdjustRightSpliter,
+            )
+            .width(Length::Fill)
+            .padding(10.0)
+            .into(),
             None => scrollable(container(grid).center_x().width(Length::Fill)).into(),
         };
 

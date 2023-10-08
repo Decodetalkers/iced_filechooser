@@ -16,6 +16,7 @@ struct FileChooser {
     showhide: bool,
     preview_big_image: bool,
     current_selected: Option<PathBuf>,
+    right_spliter: Option<u16>,
 }
 
 #[derive(Debug, Clone)]
@@ -26,6 +27,7 @@ pub enum Message {
     RequestEnter(PathBuf),
     RequestShowHide(bool),
     RequestShowImage(bool),
+    RequestAdjustRightSpliter(u16),
 }
 
 impl Application for FileChooser {
@@ -41,6 +43,7 @@ impl Application for FileChooser {
                 showhide: false,
                 preview_big_image: false,
                 current_selected: None,
+                right_spliter: None,
             },
             Command::perform(async {}, |_| Message::RequestNext),
         )
@@ -87,6 +90,10 @@ impl Application for FileChooser {
                 }
                 Command::none()
             }
+            Message::RequestAdjustRightSpliter(right_size) => {
+                self.right_spliter = Some(right_size);
+                Command::none()
+            }
             _ => Command::none(),
         }
     }
@@ -95,6 +102,7 @@ impl Application for FileChooser {
         self.dir.view(
             self.showhide,
             self.preview_big_image,
+            &self.right_spliter,
             &self.current_selected,
             false,
         )
