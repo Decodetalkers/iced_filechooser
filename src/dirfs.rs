@@ -400,22 +400,33 @@ impl FsInfo {
     fn get_right_view_icon(&self) -> Element<Message> {
         if self.is_svg() {
             return svg(svg::Handle::from_path(self.path()))
-                .width(200)
-                .height(200)
+                .width(Length::Fixed(200.0))
+                .height(Length::Fixed(200.0))
                 .into();
         }
         if self.is_image() {
-            return image(self.path()).width(200).height(200).into();
+            return image(self.path())
+                .width(Length::Fixed(200.0))
+                .height(Length::Fixed(200.0))
+                .into();
         }
-        svg(self.get_icon_handle()).width(200).height(200).into()
+        svg(self.get_icon_handle())
+            .width(Length::Fixed(200.0))
+            .height(Length::Fixed(200.0))
+            .into()
     }
 
     fn right_view(&self) -> Element<Message> {
         column![
             self.get_right_view_icon(),
-            text(self.permission()).horizontal_alignment(alignment::Horizontal::Center)
+            text(self.permission())
+                .horizontal_alignment(alignment::Horizontal::Center)
+                .width(Length::Fill),
+            text(self.name())
+                .horizontal_alignment(alignment::Horizontal::Center)
+                .width(Length::Fill)
         ]
-        .width(Length::Fill)
+        .width(Length::Fixed(200.0))
         .into()
     }
 
