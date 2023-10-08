@@ -17,6 +17,7 @@ struct FileChooser {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    Check,
     RequestNext,
     RequestEnter(PathBuf),
 }
@@ -58,6 +59,7 @@ impl Application for FileChooser {
                     Command::none()
                 }
             }
+            _ => Command::none()
         }
     }
 

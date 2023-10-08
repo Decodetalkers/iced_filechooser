@@ -1,5 +1,5 @@
-use iced::widget::{button, column, container, scrollable, svg, text};
 use iced::alignment;
+use iced::widget::{button, checkbox, column, container, scrollable, svg, text};
 use iced::{Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::fs::ReadDir;
@@ -187,6 +187,9 @@ impl FsInfo {
     }
 
     pub fn is_readable(&self) -> bool {
+        if self.is_file() {
+            return true;
+        }
         self.is_dir() && self.path().read_dir().is_ok()
     }
 
@@ -249,19 +252,28 @@ impl FsInfo {
             .padding(10)
             .width(BUTTON_WIDTH)
             .height(BUTTON_WIDTH);
-        if self.is_readable() && (self.is_dir() | select_dir) {
+        let dir_can_enter = self.is_dir() && self.is_readable();
+
+        if dir_can_enter {
             dirbtn = dirbtn.on_press(Message::RequestEnter(self.path()));
         }
-        let tocontainer = column![
-            dirbtn,
+
+        let can_selected = self.is_readable() && (self.is_dir() == select_dir);
+        let bottom_text: Element<Message> = if can_selected {
+            container(checkbox(self.name(), false, |_| Message::Check))
+                .width(Length::Fill)
+                .into()
+        } else {
             container(
                 text(self.name())
                     .width(BUTTON_WIDTH)
-                    .horizontal_alignment(alignment::Horizontal::Center)
+                    .horizontal_alignment(alignment::Horizontal::Center),
             )
             .width(Length::Fill)
-            .height(Length::Fill)
-        ];
+            .into()
+        };
+
+        let tocontainer = column![dirbtn, bottom_text];
         container(tocontainer)
             .height(COLUMN_WIDTH)
             .width(Length::Fill)
