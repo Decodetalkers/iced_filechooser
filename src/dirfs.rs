@@ -39,6 +39,23 @@ pub struct DirUnit {
 }
 
 impl DirUnit {
+    fn get_parent_path(&self) -> Option<PathBuf> {
+        self.current_dir.parent().map(|path| path.into())
+    }
+
+    fn get_prevouse_icon(&self) -> Element<Message> {
+        if let Some(icon) = get_icon("Adwaita", "go-previous") {
+            return svg(svg::Handle::from_path(icon))
+                .width(20)
+                .height(20)
+                .into();
+        }
+        svg(svg::Handle::from_memory(DIR_IMAGE))
+            .width(20)
+            .height(20)
+            .into()
+    }
+
     pub fn view(&self, show_hide: bool, select_dir: bool) -> Element<Message> {
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
         let filter_way = |dir: &&FsInfo| show_hide || !dir.is_hidden();
@@ -54,15 +71,26 @@ impl DirUnit {
 
     fn title_bar(&self, show_hide: bool) -> Element<Message> {
         let current_dir = self.current_dir.to_string_lossy().to_string();
-        container(
-            row![
-                text(current_dir).horizontal_alignment(alignment::Horizontal::Center),
-                checkbox("show hide", show_hide, Message::RequestShowHide)
-            ]
-            .spacing(10),
-        )
-        .width(Length::Fill)
-        .into()
+        let mut rowvec: Vec<Element<Message>> = Vec::new();
+        if let Some(parent) = self.get_parent_path() {
+            let btn: Element<Message> = button(self.get_prevouse_icon())
+                .style(theme::Button::Secondary)
+                .on_press(Message::RequestEnter(parent))
+                .into();
+            rowvec.push(btn);
+        }
+        rowvec.append(&mut vec![
+            text(current_dir)
+                .horizontal_alignment(alignment::Horizontal::Center)
+                .size(20)
+                .into(),
+            checkbox("show hide", show_hide, Message::RequestShowHide)
+                .size(20)
+                .into(),
+        ]);
+        container(row(rowvec).spacing(10))
+            .width(Length::Fill)
+            .into()
     }
 
     pub fn enter(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
