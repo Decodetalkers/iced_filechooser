@@ -93,11 +93,18 @@ impl DirUnit {
     ) -> Element<Message> {
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
         let filter_way = |dir: &&FsInfo| show_hide || !dir.is_hidden();
-
-        for dir in self.fs_infos().iter().filter(filter_way) {
-            grid = grid.push(dir.view(select_dir, preview_image, current_selected));
-        }
-
+        let infowidth = self.fs_infos().iter().filter(filter_way).count();
+        if infowidth > 1000 {
+            let mut iter = self.fs_infos().iter().filter(filter_way);
+            for _ in 0..1000 {
+                let dir = iter.next().unwrap();
+                grid = grid.push(dir.view(select_dir, preview_image, current_selected));
+            }
+        } else {
+            for dir in self.fs_infos().iter().filter(filter_way) {
+                grid = grid.push(dir.view(select_dir, preview_image, current_selected));
+            }
+        };
         let rightviewinfo = current_selected.as_ref().and_then(|p| self.find_unit(p));
         let bottom: Element<Message> = match rightviewinfo {
             Some(info) => Split::new(
@@ -175,7 +182,7 @@ impl DirUnit {
             infos: Vec::new(),
             current_dir: dir.to_path_buf(),
         };
-        if count < 1000 || not_wait{
+        if count < 1000 || not_wait {
             while !enterdir.is_end {
                 let _ = enterdir.polldir();
             }
@@ -188,6 +195,15 @@ impl DirUnit {
     }
 
     pub fn polldir(&mut self) -> Result<(), Box<dyn Error>> {
+        for _ in 0..50 {
+            self.polldir_unit()?;
+            if self.ls_end() {
+                break;
+            }
+        }
+        Ok(())
+    }
+    pub fn polldir_unit(&mut self) -> Result<(), Box<dyn Error>> {
         let Some(file) = self.iter.next() else {
             self.is_end = true;
             return Ok(());
