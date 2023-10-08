@@ -1,5 +1,5 @@
 use iced::alignment;
-use iced::widget::{button, checkbox, column, container, scrollable, svg, text};
+use iced::widget::{button, checkbox, column, container, image, scrollable, svg, text};
 use iced::{theme, Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::fs::ReadDir;
@@ -210,6 +210,11 @@ impl FsInfo {
         };
         mimeinfo.contains(&Mime::from_str("image/svg+xml").unwrap())
     }
+
+    pub fn is_image(&self) -> bool {
+        self.icon() == "image-x-generic"
+    }
+
     pub fn is_writeable(&self) -> bool {
         let [_, w, _] = self.permission();
         *w == S_IWUSR
@@ -253,9 +258,6 @@ impl FsInfo {
     }
 
     fn get_icon_handle(&self) -> svg::Handle {
-        if self.is_svg() {
-            return svg::Handle::from_path(self.path());
-        }
         if let Some(icon) = get_icon("Adwaita", self.icon()) {
             return svg::Handle::from_path(icon);
         }
@@ -266,9 +268,18 @@ impl FsInfo {
         }
     }
 
+    fn get_icon(&self) -> Element<Message> {
+        if self.is_svg() {
+            return svg(svg::Handle::from_path(self.path())).into();
+        }
+        if self.is_image() {
+            return image(self.path()).into();
+        }
+        svg(self.get_icon_handle()).into()
+    }
+
     fn view(&self, select_dir: bool) -> Element<Message> {
-        let icon_handle = self.get_icon_handle();
-        let mut file_btn = button(svg(icon_handle))
+        let mut file_btn = button(self.get_icon())
             .padding(10)
             .width(BUTTON_WIDTH)
             .height(BUTTON_WIDTH);
