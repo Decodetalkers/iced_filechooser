@@ -76,7 +76,7 @@ impl DirUnit {
             .into()
     }
 
-    fn find_unit(&self, path: &PathBuf) -> Option<&FsInfo> {
+    fn find_unit(&self, path: &Path) -> Option<&FsInfo> {
         self.fs_infos().iter().find(|iter| {
             iter.path().canonicalize().unwrap().as_os_str()
                 == path.canonicalize().unwrap().as_os_str()
@@ -103,7 +103,7 @@ impl DirUnit {
             Some(info) => Split::new(
                 scrollable(container(grid).center_x().width(Length::Fill)),
                 info.right_view(),
-                right_spliter.clone(),
+                *right_spliter,
                 split::Axis::Vertical,
                 Message::RequestAdjustRightSpliter,
             )
@@ -167,7 +167,7 @@ impl DirUnit {
         .into()
     }
 
-    pub fn enter(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
+    pub fn enter(dir: &PathBuf, not_wait: bool) -> Result<Self, Box<dyn Error>> {
         let (count, iter) = ls_dir_pre(dir)?;
         let mut enterdir = Self {
             is_end: false,
@@ -175,7 +175,7 @@ impl DirUnit {
             infos: Vec::new(),
             current_dir: dir.to_path_buf(),
         };
-        if count < 1000 {
+        if count < 1000 || not_wait{
             while !enterdir.is_end {
                 let _ = enterdir.polldir();
             }

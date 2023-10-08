@@ -17,6 +17,7 @@ struct FileChooser {
     preview_big_image: bool,
     current_selected: Option<PathBuf>,
     right_spliter: Option<u16>,
+    enter_without_wait: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -37,13 +38,15 @@ impl Application for FileChooser {
     type Theme = Theme;
 
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
+        let enter_without_wait = false;
         (
             Self {
-                dir: DirUnit::enter(&PathBuf::from(".")).unwrap(),
+                dir: DirUnit::enter(&PathBuf::from("."), enter_without_wait).unwrap(),
                 showhide: false,
                 preview_big_image: false,
                 current_selected: None,
                 right_spliter: None,
+                enter_without_wait,
             },
             Command::perform(async {}, |_| Message::RequestNext),
         )
@@ -64,7 +67,7 @@ impl Application for FileChooser {
                 }
             }
             Message::RequestEnter(path) => {
-                if let Ok(dir) = DirUnit::enter(&path) {
+                if let Ok(dir) = DirUnit::enter(&path, self.enter_without_wait) {
                     self.dir = dir;
                     Command::perform(async {}, |_| Message::RequestNext)
                 } else {
