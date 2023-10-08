@@ -3,12 +3,14 @@ use iced::widget::{button, checkbox, column, container, scrollable, svg, text};
 use iced::{theme, Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::fs::ReadDir;
+use std::str::FromStr;
 use std::{error::Error, fs, path::PathBuf};
 
 use iced_aw::Grid;
 
 use crate::utils::get_icon;
 
+use mime::Mime;
 use xdg_mime::SharedMimeInfo;
 
 use once_cell::sync::Lazy;
@@ -100,6 +102,7 @@ impl DirUnit {
                     permission,
                     name,
                     symlink: Some(realpath),
+                    mimeinfo,
                 });
             }
             return Ok(());
@@ -123,6 +126,7 @@ impl DirUnit {
                 permission,
                 name,
                 symlink: None,
+                mimeinfo,
             })
         }
         self.infos.sort_by(|a, b| {
@@ -147,6 +151,7 @@ pub enum FsInfo {
         permission: [u32; 3],
         name: String,
         symlink: Option<PathBuf>,
+        mimeinfo: Vec<Mime>,
     },
     Dir {
         path: PathBuf,
@@ -191,6 +196,20 @@ impl FsInfo {
         self.is_dir() && self.path().read_dir().is_ok()
     }
 
+    pub fn is_svg(&self) -> bool {
+        let FsInfo::File {
+            path,
+            icon,
+            permission,
+            name,
+            symlink,
+            mimeinfo,
+        } = self
+        else {
+            return false;
+        };
+        mimeinfo.contains(&Mime::from_str("image/svg+xml").unwrap())
+    }
     pub fn is_writeable(&self) -> bool {
         let [_, w, _] = self.permission();
         *w == S_IWUSR
@@ -234,6 +253,9 @@ impl FsInfo {
     }
 
     fn get_icon_handle(&self) -> svg::Handle {
+        if self.is_svg() {
+            return svg::Handle::from_path(self.path());
+        }
         if let Some(icon) = get_icon("Adwaita", self.icon()) {
             return svg::Handle::from_path(icon);
         }
