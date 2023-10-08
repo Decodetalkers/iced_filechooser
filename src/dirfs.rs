@@ -56,20 +56,20 @@ impl DirUnit {
             .into()
     }
 
-    pub fn view(&self, show_hide: bool, select_dir: bool) -> Element<Message> {
+    pub fn view(&self, show_hide: bool, preview_image: bool, select_dir: bool) -> Element<Message> {
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
         let filter_way = |dir: &&FsInfo| show_hide || !dir.is_hidden();
         for dir in self.fs_infos().iter().filter(filter_way) {
-            grid = grid.push(dir.view(select_dir));
+            grid = grid.push(dir.view(select_dir, preview_image));
         }
         //let mainview = column![grid, self.title_bar(show_hide)];
         let bottom = scrollable(container(grid).center_x().width(Length::Fill));
-        column![self.title_bar(show_hide), bottom]
+        column![self.title_bar(show_hide, preview_image), bottom]
             .spacing(10)
             .into()
     }
 
-    fn title_bar(&self, show_hide: bool) -> Element<Message> {
+    fn title_bar(&self, show_hide: bool, preview_image: bool) -> Element<Message> {
         let current_dir = self.current_dir.to_string_lossy().to_string();
         let mut rowvec: Vec<Element<Message>> = Vec::new();
         if let Some(parent) = self.get_parent_path() {
@@ -85,6 +85,9 @@ impl DirUnit {
                 .size(20)
                 .into(),
             checkbox("show hide", show_hide, Message::RequestShowHide)
+                .size(20)
+                .into(),
+            checkbox("preivew image", preview_image, Message::RequestShowImage)
                 .size(20)
                 .into(),
         ]);
@@ -314,18 +317,18 @@ impl FsInfo {
         }
     }
 
-    fn get_icon(&self) -> Element<Message> {
+    fn get_icon(&self, preview_image: bool) -> Element<Message> {
         if self.is_svg() {
             return svg(svg::Handle::from_path(self.path())).into();
         }
-        if self.is_image() {
+        if self.is_image() && preview_image {
             return image(self.path()).into();
         }
         svg(self.get_icon_handle()).into()
     }
 
-    fn view(&self, select_dir: bool) -> Element<Message> {
-        let mut file_btn = button(self.get_icon())
+    fn view(&self, select_dir: bool, preview_image: bool) -> Element<Message> {
+        let mut file_btn = button(self.get_icon(preview_image))
             .padding(10)
             .width(BUTTON_WIDTH)
             .height(BUTTON_WIDTH);
