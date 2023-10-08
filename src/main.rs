@@ -62,6 +62,6 @@ impl Application for FileChooser {
     }
 
     fn view(&self) -> Element<Message> {
-        self.dir.view(false)
+        self.dir.view(false, false)
     }
 }

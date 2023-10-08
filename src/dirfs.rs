@@ -1,5 +1,5 @@
 use iced::widget::{button, column, container, scrollable, svg, text};
-use iced::{alignment, theme};
+use iced::alignment;
 use iced::{Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::fs::ReadDir;
@@ -36,13 +36,13 @@ pub struct DirUnit {
 }
 
 impl DirUnit {
-    pub fn view(&self, show_hide: bool) -> Element<Message> {
+    pub fn view(&self, show_hide: bool, select_dir: bool) -> Element<Message> {
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
         for dir in self.fs_infos() {
             if !show_hide && dir.is_hidden() {
                 continue;
             }
-            grid = grid.push(dir.view());
+            grid = grid.push(dir.view(select_dir));
         }
 
         scrollable(container(grid).center_x().width(Length::Fill)).into()
@@ -243,52 +243,29 @@ impl FsInfo {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self, select_dir: bool) -> Element<Message> {
         let icon_handle = self.get_icon_handle();
-        if self.is_dir() {
-            let mut dirbtn = button(svg(icon_handle))
-                .padding(10)
-                .width(BUTTON_WIDTH)
-                .height(BUTTON_WIDTH);
-            if self.is_readable() {
-                dirbtn = dirbtn.on_press(Message::RequestEnter(self.path()));
-            }
-            let tocontainer = column![
-                dirbtn,
-                container(
-                    text(self.name())
-                        .width(BUTTON_WIDTH)
-                        .horizontal_alignment(alignment::Horizontal::Center)
-                )
-                .width(Length::Fill)
-                .height(Length::Fill)
-            ];
-            container(tocontainer)
-                .height(COLUMN_WIDTH)
-                .width(Length::Fill)
-                .center_x()
-                .into()
-        } else {
-            let btn = button(svg(icon_handle))
-                .padding(10)
-                .style(theme::Button::Positive)
-                .width(BUTTON_WIDTH)
-                .height(BUTTON_WIDTH);
-            let tocontainer = column![
-                btn,
-                container(
-                    text(self.name())
-                        .width(BUTTON_WIDTH)
-                        .horizontal_alignment(alignment::Horizontal::Center)
-                )
-                .width(Length::Fill)
-                .height(Length::Fill)
-            ];
-            container(tocontainer)
-                .height(COLUMN_WIDTH)
-                .width(Length::Fill)
-                .center_x()
-                .into()
+        let mut dirbtn = button(svg(icon_handle))
+            .padding(10)
+            .width(BUTTON_WIDTH)
+            .height(BUTTON_WIDTH);
+        if self.is_readable() && (self.is_dir() | select_dir) {
+            dirbtn = dirbtn.on_press(Message::RequestEnter(self.path()));
         }
+        let tocontainer = column![
+            dirbtn,
+            container(
+                text(self.name())
+                    .width(BUTTON_WIDTH)
+                    .horizontal_alignment(alignment::Horizontal::Center)
+            )
+            .width(Length::Fill)
+            .height(Length::Fill)
+        ];
+        container(tocontainer)
+            .height(COLUMN_WIDTH)
+            .width(Length::Fill)
+            .center_x()
+            .into()
     }
 }
