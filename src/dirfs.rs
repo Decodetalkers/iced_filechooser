@@ -25,6 +25,8 @@ static TEXT_IMAGE: &[u8] = include_bytes!("../resources/text-plain.svg");
 
 static DIR_IMAGE: &[u8] = include_bytes!("../resources/inode-directory.svg");
 
+static GO_PREVIOUS: &[u8] = include_bytes!("../resources/go-previous.svg");
+
 const DIR_ICON: &str = "inode-directory";
 const TEXT_ICON: &str = "text-plain";
 
@@ -68,7 +70,7 @@ impl DirUnit {
                 .height(20)
                 .into();
         }
-        svg(svg::Handle::from_memory(DIR_IMAGE))
+        svg(svg::Handle::from_memory(GO_PREVIOUS))
             .width(20)
             .height(20)
             .into()
@@ -126,9 +128,14 @@ impl DirUnit {
                 .size(20)
                 .into(),
         ]);
-        container(row(rowvec).spacing(10).padding(5))
-            .width(Length::Fill)
-            .into()
+        container(
+            row(rowvec)
+                .spacing(10)
+                .padding(5)
+                .align_items(iced::Alignment::Center),
+        )
+        .width(Length::Fill)
+        .into()
     }
 
     pub fn enter(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
