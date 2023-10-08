@@ -38,10 +38,11 @@ pub struct DirUnit {
 impl DirUnit {
     pub fn view(&self, show_hide: bool, select_dir: bool) -> Element<Message> {
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
-        for dir in self.fs_infos() {
-            if !show_hide && dir.is_hidden() {
-                continue;
-            }
+        for dir in self
+            .fs_infos()
+            .iter()
+            .filter(|dir| show_hide || !dir.is_hidden())
+        {
             grid = grid.push(dir.view(select_dir));
         }
 
