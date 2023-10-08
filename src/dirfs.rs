@@ -4,7 +4,11 @@ use iced::{theme, Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::fs::ReadDir;
 use std::str::FromStr;
-use std::{error::Error, fs, path::PathBuf};
+use std::{
+    error::Error,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use iced_aw::Grid;
 
@@ -36,6 +40,20 @@ pub struct DirUnit {
     iter: std::iter::Flatten<ReadDir>,
     infos: Vec<FsInfo>,
     current_dir: PathBuf,
+}
+
+fn get_dir_name(dir: &Path) -> String {
+    let mut output = dir
+        .to_string_lossy()
+        .to_string()
+        .split('/')
+        .last()
+        .unwrap_or("/")
+        .to_string();
+    if output.is_empty() {
+        output = "/".to_string();
+    }
+    output
 }
 
 impl DirUnit {
@@ -70,7 +88,7 @@ impl DirUnit {
     }
 
     fn title_bar(&self, show_hide: bool, preview_image: bool) -> Element<Message> {
-        let current_dir = self.current_dir.to_string_lossy().to_string();
+        let current_dir = fs::canonicalize(&self.current_dir).unwrap();
         let mut rowvec: Vec<Element<Message>> = Vec::new();
         if let Some(parent) = self.get_parent_path() {
             let btn: Element<Message> = button(self.get_prevouse_icon())
@@ -79,11 +97,28 @@ impl DirUnit {
                 .into();
             rowvec.push(btn);
         }
-        rowvec.append(&mut vec![
-            text(current_dir)
-                .horizontal_alignment(alignment::Horizontal::Center)
-                .size(20)
+
+        let mut dirbtn: Vec<Element<Message>> = Vec::new();
+
+        let mut current_path_dir = current_dir.clone();
+
+        dirbtn.push(
+            button(text(get_dir_name(&current_path_dir)))
+                .on_press(Message::RequestEnter(current_path_dir.clone()))
                 .into(),
+        );
+
+        while let Some(parent) = current_path_dir.parent() {
+            current_path_dir = PathBuf::from(parent);
+            let mut newbtns = vec![button(text(get_dir_name(&current_path_dir)))
+                .on_press(Message::RequestEnter(current_path_dir.clone()))
+                .into()];
+            newbtns.append(&mut dirbtn);
+            dirbtn = newbtns;
+        }
+
+        rowvec.append(&mut dirbtn);
+        rowvec.append(&mut vec![
             checkbox("show hide", show_hide, Message::RequestShowHide)
                 .size(20)
                 .into(),
@@ -91,7 +126,7 @@ impl DirUnit {
                 .size(20)
                 .into(),
         ]);
-        container(row(rowvec).spacing(10))
+        container(row(rowvec).spacing(10).padding(5))
             .width(Length::Fill)
             .into()
     }

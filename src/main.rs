@@ -36,7 +36,7 @@ impl Application for FileChooser {
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
         (
             Self {
-                dir: DirUnit::enter(&PathBuf::from("/")).unwrap(),
+                dir: DirUnit::enter(&PathBuf::from(".")).unwrap(),
                 showhide: false,
                 preview_big_image: false,
             },
