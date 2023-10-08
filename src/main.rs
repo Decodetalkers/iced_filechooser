@@ -13,6 +13,7 @@ pub fn main() -> iced::Result {
 #[derive(Debug)]
 struct FileChooser {
     dir: DirUnit,
+    showhide: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -21,6 +22,7 @@ pub enum Message {
     RequestNext,
     RequestSelect,
     RequestEnter(PathBuf),
+    RequestShowHide(bool),
 }
 
 impl Application for FileChooser {
@@ -33,6 +35,7 @@ impl Application for FileChooser {
         (
             Self {
                 dir: DirUnit::enter(&PathBuf::from("/")).unwrap(),
+                showhide: false,
             },
             Command::perform(async {}, |_| Message::RequestNext),
         )
@@ -60,11 +63,15 @@ impl Application for FileChooser {
                     Command::none()
                 }
             }
-            _ => Command::none()
+            Message::RequestShowHide(showhide) => {
+                self.showhide = showhide;
+                Command::none()
+            }
+            _ => Command::none(),
         }
     }
 
     fn view(&self) -> Element<Message> {
-        self.dir.view(false, false)
+        self.dir.view(self.showhide, false)
     }
 }

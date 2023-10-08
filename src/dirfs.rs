@@ -1,5 +1,5 @@
 use iced::alignment;
-use iced::widget::{button, checkbox, column, container, image, scrollable, svg, text};
+use iced::widget::{button, checkbox, column, container, image, row, scrollable, svg, text};
 use iced::{theme, Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::fs::ReadDir;
@@ -35,6 +35,7 @@ pub struct DirUnit {
     is_end: bool,
     iter: std::iter::Flatten<ReadDir>,
     infos: Vec<FsInfo>,
+    current_dir: PathBuf,
 }
 
 impl DirUnit {
@@ -44,8 +45,24 @@ impl DirUnit {
         for dir in self.fs_infos().iter().filter(filter_way) {
             grid = grid.push(dir.view(select_dir));
         }
+        //let mainview = column![grid, self.title_bar(show_hide)];
+        let bottom = scrollable(container(grid).center_x().width(Length::Fill));
+        column![self.title_bar(show_hide), bottom]
+            .spacing(10)
+            .into()
+    }
 
-        scrollable(container(grid).center_x().width(Length::Fill)).into()
+    fn title_bar(&self, show_hide: bool) -> Element<Message> {
+        let current_dir = self.current_dir.to_string_lossy().to_string();
+        container(
+            row![
+                text(current_dir).horizontal_alignment(alignment::Horizontal::Center),
+                checkbox("show hide", show_hide, Message::RequestShowHide)
+            ]
+            .spacing(10),
+        )
+        .width(Length::Fill)
+        .into()
     }
 
     pub fn enter(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
@@ -54,6 +71,7 @@ impl DirUnit {
             is_end: false,
             iter,
             infos: Vec::new(),
+            current_dir: dir.to_path_buf(),
         };
         if count < 1000 {
             while !enterdir.is_end {
