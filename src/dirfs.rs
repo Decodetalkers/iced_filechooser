@@ -1,7 +1,7 @@
 use iced::alignment;
 use iced::widget::{button, checkbox, column, container, image, row, scrollable, svg, text};
 use iced::{theme, Element, Length};
-use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
+use libc::{S_IRGRP, S_IROTH, S_IRUSR, S_IWGRP, S_IWOTH, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR};
 use std::fs::ReadDir;
 use std::str::FromStr;
 use std::{
@@ -76,6 +76,13 @@ impl DirUnit {
             .into()
     }
 
+    fn find_unit(&self, path: &PathBuf) -> Option<&FsInfo> {
+        self.fs_infos().iter().find(|iter| {
+            iter.path().canonicalize().unwrap().as_os_str()
+                == path.canonicalize().unwrap().as_os_str()
+        })
+    }
+
     pub fn view(
         &self,
         show_hide: bool,
@@ -85,11 +92,20 @@ impl DirUnit {
     ) -> Element<Message> {
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
         let filter_way = |dir: &&FsInfo| show_hide || !dir.is_hidden();
+
         for dir in self.fs_infos().iter().filter(filter_way) {
             grid = grid.push(dir.view(select_dir, preview_image, current_selected));
         }
-        //let mainview = column![grid, self.title_bar(show_hide)];
-        let bottom = scrollable(container(grid).center_x().width(Length::Fill));
+
+        let rightviewinfo = current_selected.as_ref().and_then(|p| self.find_unit(p));
+        let bottom: Element<Message> = match rightviewinfo {
+            Some(info) => row![scrollable(grid), info.right_view()]
+                .width(Length::Fill)
+                .padding(10)
+                .into(),
+            None => scrollable(container(grid).center_x().width(Length::Fill)).into(),
+        };
+
         column![self.title_bar(show_hide, preview_image), bottom]
             .spacing(10)
             .into()
@@ -176,7 +192,7 @@ impl DirUnit {
         let metadata = file.metadata()?;
         let path = file.path();
         use std::os::unix::fs::MetadataExt;
-        let permission = parse_permission(metadata.mode());
+        let permission = parse_permissions(metadata.mode());
         let mime = &MIME;
         if metadata.is_symlink() {
             let realpath = fs::read_link(&path).unwrap();
@@ -245,7 +261,7 @@ pub enum FsInfo {
     File {
         path: PathBuf,
         icon: String,
-        permission: [u32; 3],
+        permission: String,
         name: String,
         symlink: Option<PathBuf>,
         mimeinfo: Vec<Mime>,
@@ -253,13 +269,29 @@ pub enum FsInfo {
     Dir {
         path: PathBuf,
         name: String,
-        permission: [u32; 3],
+        permission: String,
         symlink: Option<PathBuf>,
     },
 }
+fn triplet(mode: u32, read: u32, write: u32, execute: u32) -> String {
+    match (mode & read, mode & write, mode & execute) {
+        (0, 0, 0) => "---",
+        (_, 0, 0) => "r--",
+        (0, _, 0) => "-w-",
+        (0, 0, _) => "--x",
+        (_, 0, _) => "r-x",
+        (_, _, 0) => "rw-",
+        (0, _, _) => "-wx",
+        (_, _, _) => "rwx",
+    }
+    .to_string()
+}
 
-fn parse_permission(mode: u32) -> [u32; 3] {
-    [mode & S_IRUSR, mode & S_IWUSR, mode & S_IXUSR]
+fn parse_permissions(mode: u32) -> String {
+    let user = triplet(mode, S_IRUSR, S_IWUSR, S_IXUSR);
+    let group = triplet(mode, S_IRGRP, S_IWGRP, S_IXGRP);
+    let other = triplet(mode, S_IROTH, S_IWOTH, S_IXOTH);
+    [user, group, other].join("")
 }
 
 fn ls_dir_pre(dir: &PathBuf) -> Result<(usize, std::iter::Flatten<ReadDir>), Box<dyn Error>> {
@@ -272,7 +304,7 @@ fn ls_dir_pre(dir: &PathBuf) -> Result<(usize, std::iter::Flatten<ReadDir>), Box
 
 #[allow(unused)]
 impl FsInfo {
-    pub fn permission(&self) -> &[u32; 3] {
+    pub fn permission(&self) -> &str {
         match self {
             Self::Dir { permission, .. } => permission,
             Self::File { permission, .. } => permission,
@@ -310,16 +342,6 @@ impl FsInfo {
 
     pub fn is_image(&self) -> bool {
         self.icon() == "image-x-generic"
-    }
-
-    pub fn is_writeable(&self) -> bool {
-        let [_, w, _] = self.permission();
-        *w == S_IWUSR
-    }
-
-    pub fn is_excutable(&self) -> bool {
-        let [_, _, e] = self.permission();
-        *e == S_IXUSR
     }
 
     pub fn icon(&self) -> &str {
@@ -373,6 +395,28 @@ impl FsInfo {
             return image(self.path()).into();
         }
         svg(self.get_icon_handle()).into()
+    }
+
+    fn get_right_view_icon(&self) -> Element<Message> {
+        if self.is_svg() {
+            return svg(svg::Handle::from_path(self.path()))
+                .width(200)
+                .height(200)
+                .into();
+        }
+        if self.is_image() {
+            return image(self.path()).width(200).height(200).into();
+        }
+        svg(self.get_icon_handle()).width(200).height(200).into()
+    }
+
+    fn right_view(&self) -> Element<Message> {
+        column![
+            self.get_right_view_icon(),
+            text(self.permission()).horizontal_alignment(alignment::Horizontal::Center)
+        ]
+        .width(Length::Fill)
+        .into()
     }
 
     fn view(
