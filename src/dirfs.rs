@@ -1,6 +1,6 @@
 use iced::alignment;
 use iced::widget::{button, checkbox, column, container, scrollable, svg, text};
-use iced::{Element, Length};
+use iced::{theme, Element, Length};
 use libc::{S_IRUSR, S_IWUSR, S_IXUSR};
 use std::fs::ReadDir;
 use std::{error::Error, fs, path::PathBuf};
@@ -24,9 +24,9 @@ const TEXT_ICON: &str = "text-plain";
 
 use crate::Message;
 
-const COLUMN_WIDTH: f32 = 180.0;
+const COLUMN_WIDTH: f32 = 200.0;
 
-const BUTTON_WIDTH: f32 = 150.0;
+const BUTTON_WIDTH: f32 = 170.0;
 
 #[derive(Debug)]
 pub struct DirUnit {
@@ -252,13 +252,17 @@ impl FsInfo {
             .padding(10)
             .width(BUTTON_WIDTH)
             .height(BUTTON_WIDTH);
+
         let dir_can_enter = self.is_dir() && self.is_readable();
 
+        let can_selected = self.is_readable() && (self.is_dir() == select_dir);
+        if dir_can_enter || can_selected {
+            dirbtn = dirbtn.style(theme::Button::Secondary);
+        }
         if dir_can_enter {
             dirbtn = dirbtn.on_press(Message::RequestEnter(self.path()));
         }
 
-        let can_selected = self.is_readable() && (self.is_dir() == select_dir);
         let bottom_text: Element<Message> = if can_selected {
             container(checkbox(self.name(), false, |_| Message::Check))
                 .width(Length::Fill)
