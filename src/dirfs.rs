@@ -63,6 +63,10 @@ fn get_dir_name(dir: &Path) -> String {
 }
 
 impl DirUnit {
+    pub fn current_dir(&self) -> &PathBuf {
+        &self.current_dir
+    }
+
     fn get_parent_path(&self) -> Option<PathBuf> {
         self.current_dir.parent().map(|path| path.into())
     }
@@ -314,10 +318,10 @@ impl DirUnit {
         &self.infos
     }
 }
-pub async fn update_dir_infos<P: AsRef<Path>>(path: P) -> Vec<FsInfo> {
+pub async fn update_dir_infos<P: AsRef<Path>>(path: P) -> (Vec<FsInfo>, PathBuf) {
     let mut fs_infos = Vec::new();
-    let Ok(dirs) = fs::read_dir(path) else {
-        return fs_infos;
+    let Ok(dirs) = fs::read_dir(&path) else {
+        return (fs_infos, PathBuf::from(path.as_ref()));
     };
     for file in dirs.flatten() {
         let Ok(name) = file.file_name().into_string() else {
@@ -383,7 +387,7 @@ pub async fn update_dir_infos<P: AsRef<Path>>(path: P) -> Vec<FsInfo> {
         }
     }
 
-    fs_infos
+    (fs_infos, path.as_ref().into())
 }
 
 #[derive(Debug, Clone)]

@@ -19,10 +19,20 @@ struct FileChooser {
     right_spliter: Option<u16>,
 }
 
+fn is_samedir(patha: &PathBuf, pathb: &PathBuf) -> bool {
+    let Ok(origin_path) = patha.canonicalize() else {
+        return false;
+    };
+    let Ok(self_path) = pathb.canonicalize() else {
+        return false;
+    };
+    self_path.as_os_str() == origin_path.as_os_str()
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     Check,
-    RequestNextDirs(Vec<FsInfo>),
+    RequestNextDirs((Vec<FsInfo>, PathBuf)),
     RequestSelect(PathBuf),
     RequestEnter(PathBuf),
     RequestShowHide(bool),
@@ -57,9 +67,11 @@ impl Application for FileChooser {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::RequestNextDirs(dirs) => {
-                self.dir.append_infos(dirs);
-                self.dir.set_end();
+            Message::RequestNextDirs((dirs, pathbuf)) => {
+                if is_samedir(self.dir.current_dir(), &pathbuf) {
+                    self.dir.append_infos(dirs);
+                    self.dir.set_end();
+                }
                 Command::none()
             }
             Message::RequestEnter(path) => {
