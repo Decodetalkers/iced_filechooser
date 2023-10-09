@@ -2,7 +2,7 @@ mod dirfs;
 mod utils;
 use std::path::PathBuf;
 
-use dirfs::{pulldirs_sec, DirUnit, FsInfo};
+use dirfs::{update_dir_infos, DirUnit, FsInfo};
 use iced::executor;
 use iced::{Application, Command, Element, Settings, Theme};
 
@@ -37,16 +37,15 @@ impl Application for FileChooser {
     type Theme = Theme;
 
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        let dir = DirUnit::enter(&PathBuf::from(".")).unwrap();
         (
             Self {
-                dir,
+                dir: DirUnit::enter(&PathBuf::from(".")),
                 showhide: false,
                 preview_big_image: false,
                 current_selected: None,
                 right_spliter: None,
             },
-            Command::perform(pulldirs_sec("."), Message::RequestNextDirs),
+            Command::perform(update_dir_infos("."), Message::RequestNextDirs),
         )
     }
 
@@ -62,12 +61,8 @@ impl Application for FileChooser {
                 Command::none()
             }
             Message::RequestEnter(path) => {
-                if let Ok(dir) = DirUnit::enter(&path.clone()) {
-                    self.dir = dir;
-                    Command::perform(pulldirs_sec(path), Message::RequestNextDirs)
-                } else {
-                    Command::none()
-                }
+                self.dir = DirUnit::enter(&path.clone());
+                Command::perform(update_dir_infos(path), Message::RequestNextDirs)
             }
             Message::RequestShowHide(showhide) => {
                 self.showhide = showhide;

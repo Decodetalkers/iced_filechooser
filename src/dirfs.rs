@@ -4,7 +4,6 @@ use iced::{theme, Element, Length};
 use libc::{S_IRGRP, S_IROTH, S_IRUSR, S_IWGRP, S_IWOTH, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR};
 use std::str::FromStr;
 use std::{
-    error::Error,
     fs,
     path::{Path, PathBuf},
 };
@@ -232,14 +231,12 @@ impl DirUnit {
         .into()
     }
 
-    pub fn enter(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
-        let enterdir = Self {
+    pub fn enter(dir: &Path) -> Self {
+        Self {
             is_end: false,
             infos: Vec::new(),
             current_dir: dir.to_path_buf(),
-        };
-
-        Ok(enterdir)
+        }
     }
 
     pub fn set_end(&mut self) {
@@ -250,7 +247,7 @@ impl DirUnit {
         &self.infos
     }
 }
-pub async fn pulldirs_sec<P: AsRef<Path>>(path: P) -> Vec<FsInfo> {
+pub async fn update_dir_infos<P: AsRef<Path>>(path: P) -> Vec<FsInfo> {
     let mut fs_infos = Vec::new();
     let Ok(dirs) = fs::read_dir(path) else {
         return fs_infos;
