@@ -2,7 +2,7 @@ mod dirfs;
 mod utils;
 use std::path::PathBuf;
 
-use dirfs::{pulldirs, DirUnit, FsInfo};
+use dirfs::{pulldirs_sec, DirUnit, FsInfo};
 use iced::executor;
 use iced::{Application, Command, Element, Settings, Theme};
 
@@ -17,7 +17,6 @@ struct FileChooser {
     preview_big_image: bool,
     current_selected: Option<PathBuf>,
     right_spliter: Option<u16>,
-    enter_without_wait: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -38,9 +37,7 @@ impl Application for FileChooser {
     type Theme = Theme;
 
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        let enter_without_wait = false;
-        let mut dir = DirUnit::enter(&PathBuf::from("."), enter_without_wait).unwrap();
-        let topolldirs = dir.get_to_poll_dirs();
+        let dir = DirUnit::enter(&PathBuf::from(".")).unwrap();
         (
             Self {
                 dir,
@@ -48,9 +45,8 @@ impl Application for FileChooser {
                 preview_big_image: false,
                 current_selected: None,
                 right_spliter: None,
-                enter_without_wait,
             },
-            Command::perform(pulldirs(topolldirs), Message::RequestNextDirs),
+            Command::perform(pulldirs_sec("."), Message::RequestNextDirs),
         )
     }
 
@@ -61,19 +57,14 @@ impl Application for FileChooser {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::RequestNextDirs(dirs) => {
-                if self.dir.ls_end() {
-                    Command::none()
-                } else {
-                    self.dir.append_infos(dirs);
-                    let topolldirs = self.dir.get_to_poll_dirs();
-                    Command::perform(pulldirs(topolldirs), Message::RequestNextDirs)
-                }
+                self.dir.append_infos(dirs);
+                self.dir.set_end();
+                Command::none()
             }
             Message::RequestEnter(path) => {
-                if let Ok(dir) = DirUnit::enter(&path, self.enter_without_wait) {
+                if let Ok(dir) = DirUnit::enter(&path.clone()) {
                     self.dir = dir;
-                    let topolldirs = self.dir.get_to_poll_dirs();
-                    Command::perform(pulldirs(topolldirs), Message::RequestNextDirs)
+                    Command::perform(pulldirs_sec(path), Message::RequestNextDirs)
                 } else {
                     Command::none()
                 }

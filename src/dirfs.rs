@@ -2,7 +2,6 @@ use iced::alignment;
 use iced::widget::{button, checkbox, column, container, image, row, scrollable, svg, text};
 use iced::{theme, Element, Length};
 use libc::{S_IRGRP, S_IROTH, S_IRUSR, S_IWGRP, S_IWOTH, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR};
-use std::fs::{DirEntry, ReadDir};
 use std::str::FromStr;
 use std::{
     error::Error,
@@ -21,11 +20,13 @@ use once_cell::sync::Lazy;
 
 static MIME: Lazy<SharedMimeInfo> = Lazy::new(SharedMimeInfo::new);
 
-static TEXT_IMAGE: &[u8] = include_bytes!("../resources/text-plain.svg");
+const TEXT_IMAGE: &[u8] = include_bytes!("../resources/text-plain.svg");
 
-static DIR_IMAGE: &[u8] = include_bytes!("../resources/inode-directory.svg");
+const DIR_IMAGE: &[u8] = include_bytes!("../resources/inode-directory.svg");
 
-static GO_PREVIOUS: &[u8] = include_bytes!("../resources/go-previous.svg");
+const GO_PREVIOUS: &[u8] = include_bytes!("../resources/go-previous.svg");
+
+const LOADING: &[u8] = include_bytes!("../resources/Loading_icon_no_fade.svg");
 
 const DIR_ICON: &str = "inode-directory";
 const TEXT_ICON: &str = "text-plain";
@@ -39,7 +40,6 @@ const BUTTON_WIDTH: f32 = 170.0;
 #[derive(Debug)]
 pub struct DirUnit {
     is_end: bool,
-    iter: std::iter::Flatten<ReadDir>,
     infos: Vec<FsInfo>,
     current_dir: PathBuf,
 }
@@ -93,7 +93,7 @@ impl DirUnit {
         })
     }
 
-    pub fn view(
+    fn main_grid(
         &self,
         show_hide: bool,
         preview_image: bool,
@@ -104,9 +104,9 @@ impl DirUnit {
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
         let filter_way = |dir: &&FsInfo| show_hide || !dir.is_hidden();
         let infowidth = self.fs_infos().iter().filter(filter_way).count();
-        if infowidth > 1000 {
+        if infowidth > 500 {
             let mut iter = self.fs_infos().iter().filter(filter_way);
-            for _ in 0..1000 {
+            for _ in 0..500 {
                 let dir = iter.next().unwrap();
                 grid = grid.push(dir.view(select_dir, preview_image, current_selected));
             }
@@ -116,7 +116,7 @@ impl DirUnit {
             }
         };
         let rightviewinfo = current_selected.as_ref().and_then(|p| self.find_unit(p));
-        let bottom: Element<Message> = match rightviewinfo {
+        match rightviewinfo {
             Some(info) => Split::new(
                 scrollable(container(grid).center_x().width(Length::Fill)),
                 info.right_view(),
@@ -128,11 +128,59 @@ impl DirUnit {
             .padding(10.0)
             .into(),
             None => scrollable(container(grid).center_x().width(Length::Fill)).into(),
-        };
+        }
+    }
 
-        column![self.title_bar(show_hide, preview_image), bottom]
-            .spacing(10)
+    fn loading_page(&self) -> Element<Message> {
+        container(svg(svg::Handle::from_memory(LOADING)))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x()
+            .center_y()
             .into()
+    }
+
+    fn bottom_view(
+        &self,
+        show_hide: bool,
+        preview_image: bool,
+        right_spliter: &Option<u16>,
+        current_selected: &Option<PathBuf>,
+        select_dir: bool,
+    ) -> Element<Message> {
+        if self.is_end {
+            self.main_grid(
+                show_hide,
+                preview_image,
+                right_spliter,
+                current_selected,
+                select_dir,
+            )
+        } else {
+            self.loading_page()
+        }
+    }
+
+    pub fn view(
+        &self,
+        show_hide: bool,
+        preview_image: bool,
+        right_spliter: &Option<u16>,
+        current_selected: &Option<PathBuf>,
+        select_dir: bool,
+    ) -> Element<Message> {
+        column![
+            self.title_bar(show_hide, preview_image),
+            self.bottom_view(
+                show_hide,
+                preview_image,
+                right_spliter,
+                current_selected,
+                select_dir
+            )
+        ]
+        .spacing(10)
+        .into()
     }
 
     fn title_bar(&self, show_hide: bool, preview_image: bool) -> Element<Message> {
@@ -184,136 +232,39 @@ impl DirUnit {
         .into()
     }
 
-    pub fn enter(dir: &PathBuf, not_wait: bool) -> Result<Self, Box<dyn Error>> {
-        let (count, iter) = ls_dir_pre(dir)?;
-        let mut enterdir = Self {
+    pub fn enter(dir: &PathBuf) -> Result<Self, Box<dyn Error>> {
+        let enterdir = Self {
             is_end: false,
-            iter,
             infos: Vec::new(),
             current_dir: dir.to_path_buf(),
         };
-        if count < 1000 || not_wait {
-            while !enterdir.is_end {
-                let _ = enterdir.polldir();
-            }
-        }
+
         Ok(enterdir)
     }
 
-    pub fn ls_end(&self) -> bool {
-        self.is_end
-    }
-
-    pub fn get_to_poll_dirs(&mut self) -> Vec<DirEntry> {
-        let mut dirs = Vec::new();
-        for _ in 0..50 {
-            let Some(dir) = self.get_dir_next() else {
-                return dirs;
-            };
-            dirs.push(dir);
-        }
-        dirs
-    }
-
-    fn get_dir_next(&mut self) -> Option<DirEntry> {
-        self.iter.next()
-    }
-
-    fn polldir(&mut self) -> Result<(), Box<dyn Error>> {
-        for _ in 0..50 {
-            self.polldir_unit().ok();
-            if self.ls_end() {
-                break;
-            }
-        }
-        self.infos.sort_by(|a, b| {
-            a.name()
-                .to_string()
-                .partial_cmp(&b.name().to_string())
-                .unwrap()
-        });
-        Ok(())
-    }
-    fn polldir_unit(&mut self) -> Result<(), Box<dyn Error>> {
-        let Some(file) = self.iter.next() else {
-            self.is_end = true;
-            return Ok(());
-        };
-        let name = file
-            .file_name()
-            .into_string()
-            .map_err(|f| format!("Invalid entry: {:?}", f))?;
-        let metadata = file.metadata()?;
-        let path = file.path();
-        use std::os::unix::fs::MetadataExt;
-        let permission = parse_permissions(metadata.mode());
-        let mime = &MIME;
-        if metadata.is_symlink() {
-            let realpath = fs::read_link(&path).unwrap();
-            if path.is_dir() {
-                self.infos.push(FsInfo::Dir {
-                    path,
-                    name,
-                    permission,
-                    symlink: Some(realpath),
-                });
-            } else {
-                let mimeinfo = mime.get_mime_types_from_file_name(&name);
-                let icon = mimeinfo
-                    .first()
-                    .and_then(|info| mime.lookup_generic_icon_name(info))
-                    .unwrap_or(TEXT_ICON.to_string());
-                self.infos.push(FsInfo::File {
-                    path,
-                    icon,
-                    permission,
-                    name,
-                    symlink: Some(realpath),
-                    mimeinfo,
-                });
-            }
-            return Ok(());
-        }
-        if metadata.is_dir() {
-            self.infos.push(FsInfo::Dir {
-                path,
-                name,
-                permission,
-                symlink: None,
-            });
-        } else {
-            let mimeinfo = mime.get_mime_types_from_file_name(&name);
-            let icon = mimeinfo
-                .first()
-                .and_then(|info| mime.lookup_generic_icon_name(info))
-                .unwrap_or(TEXT_ICON.to_string());
-            self.infos.push(FsInfo::File {
-                path,
-                icon,
-                permission,
-                name,
-                symlink: None,
-                mimeinfo,
-            })
-        }
-
-        Ok(())
+    pub fn set_end(&mut self) {
+        self.is_end = true;
     }
 
     fn fs_infos(&self) -> &Vec<FsInfo> {
         &self.infos
     }
 }
-
-pub async fn pulldirs(dirs: Vec<DirEntry>) -> Vec<FsInfo> {
+pub async fn pulldirs_sec<P: AsRef<Path>>(path: P) -> Vec<FsInfo> {
     let mut fs_infos = Vec::new();
-    for file in dirs {
+    let Ok(dirs) = fs::read_dir(path) else {
+        return fs_infos;
+    };
+    for file in dirs.flatten() {
         let Ok(name) = file.file_name().into_string() else {
             continue;
         };
         let Ok(metadata) = file.metadata() else {
             continue;
         };
+
+        tokio::time::sleep(std::time::Duration::from_nanos(5)).await;
+
         let path = file.path();
         use std::os::unix::fs::MetadataExt;
         let permission = parse_permissions(metadata.mode());
@@ -368,7 +319,6 @@ pub async fn pulldirs(dirs: Vec<DirEntry>) -> Vec<FsInfo> {
         }
     }
 
-    tokio::time::sleep(std::time::Duration::from_nanos(500)).await;
     fs_infos
 }
 
@@ -408,14 +358,6 @@ fn parse_permissions(mode: u32) -> String {
     let group = triplet(mode, S_IRGRP, S_IWGRP, S_IXGRP);
     let other = triplet(mode, S_IROTH, S_IWOTH, S_IXOTH);
     [user, group, other].join("")
-}
-
-fn ls_dir_pre(dir: &PathBuf) -> Result<(usize, std::iter::Flatten<ReadDir>), Box<dyn Error>> {
-    if !dir.is_dir() {
-        return Err("Dir is not file".into());
-    }
-    let count = fs::read_dir(dir)?.count();
-    Ok((count, fs::read_dir(dir)?.flatten()))
 }
 
 #[allow(unused)]
