@@ -1,6 +1,6 @@
 mod dirfs;
 mod utils;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use dirfs::{update_dir_infos, DirUnit, FsInfo};
 use iced::executor;
@@ -19,7 +19,7 @@ struct FileChooser {
     right_spliter: Option<u16>,
 }
 
-fn is_samedir(patha: &PathBuf, pathb: &PathBuf) -> bool {
+fn is_samedir(patha: &Path, pathb: &Path) -> bool {
     let Ok(origin_path) = patha.canonicalize() else {
         return false;
     };
