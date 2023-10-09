@@ -2,7 +2,7 @@ use iced::alignment;
 use iced::widget::{button, checkbox, column, container, image, row, scrollable, svg, text};
 use iced::{theme, Element, Length};
 use libc::{S_IRGRP, S_IROTH, S_IRUSR, S_IWGRP, S_IWOTH, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR};
-use std::fs::ReadDir;
+use std::fs::{DirEntry, ReadDir};
 use std::str::FromStr;
 use std::{
     error::Error,
@@ -61,6 +61,16 @@ fn get_dir_name(dir: &Path) -> String {
 impl DirUnit {
     fn get_parent_path(&self) -> Option<PathBuf> {
         self.current_dir.parent().map(|path| path.into())
+    }
+
+    pub fn append_infos(&mut self, mut dirs: Vec<FsInfo>) {
+        self.infos.append(&mut dirs);
+        self.infos.sort_by(|a, b| {
+            a.name()
+                .to_string()
+                .partial_cmp(&b.name().to_string())
+                .unwrap()
+        });
     }
 
     fn get_prevouse_icon(&self) -> Element<Message> {
@@ -194,7 +204,22 @@ impl DirUnit {
         self.is_end
     }
 
-    pub fn polldir(&mut self) -> Result<(), Box<dyn Error>> {
+    pub fn get_to_poll_dirs(&mut self) -> Vec<DirEntry> {
+        let mut dirs = Vec::new();
+        for _ in 0..50 {
+            let Some(dir) = self.get_dir_next() else {
+                return dirs;
+            };
+            dirs.push(dir);
+        }
+        dirs
+    }
+
+    fn get_dir_next(&mut self) -> Option<DirEntry> {
+        self.iter.next()
+    }
+
+    fn polldir(&mut self) -> Result<(), Box<dyn Error>> {
         for _ in 0..50 {
             self.polldir_unit().ok();
             if self.ls_end() {
@@ -209,7 +234,7 @@ impl DirUnit {
         });
         Ok(())
     }
-    pub fn polldir_unit(&mut self) -> Result<(), Box<dyn Error>> {
+    fn polldir_unit(&mut self) -> Result<(), Box<dyn Error>> {
         let Some(file) = self.iter.next() else {
             self.is_end = true;
             return Ok(());
@@ -278,6 +303,73 @@ impl DirUnit {
     fn fs_infos(&self) -> &Vec<FsInfo> {
         &self.infos
     }
+}
+
+pub async fn pulldirs(dirs: Vec<DirEntry>) -> Vec<FsInfo> {
+    let mut fs_infos = Vec::new();
+    for file in dirs {
+        let Ok(name) = file.file_name().into_string() else {
+            continue;
+        };
+        let Ok(metadata) = file.metadata() else {
+            continue;
+        };
+        let path = file.path();
+        use std::os::unix::fs::MetadataExt;
+        let permission = parse_permissions(metadata.mode());
+        let mime = &MIME;
+        if metadata.is_symlink() {
+            let realpath = tokio::fs::read_link(&path).await.unwrap();
+            if path.is_dir() {
+                fs_infos.push(FsInfo::Dir {
+                    path,
+                    name,
+                    permission,
+                    symlink: Some(realpath),
+                });
+            } else {
+                let mimeinfo = mime.get_mime_types_from_file_name(&name);
+                let icon = mimeinfo
+                    .first()
+                    .and_then(|info| mime.lookup_generic_icon_name(info))
+                    .unwrap_or(TEXT_ICON.to_string());
+                fs_infos.push(FsInfo::File {
+                    path,
+                    icon,
+                    permission,
+                    name,
+                    symlink: Some(realpath),
+                    mimeinfo,
+                });
+            }
+            continue;
+        }
+        if metadata.is_dir() {
+            fs_infos.push(FsInfo::Dir {
+                path,
+                name,
+                permission,
+                symlink: None,
+            });
+        } else {
+            let mimeinfo = mime.get_mime_types_from_file_name(&name);
+            let icon = mimeinfo
+                .first()
+                .and_then(|info| mime.lookup_generic_icon_name(info))
+                .unwrap_or(TEXT_ICON.to_string());
+            fs_infos.push(FsInfo::File {
+                path,
+                icon,
+                permission,
+                name,
+                symlink: None,
+                mimeinfo,
+            })
+        }
+    }
+
+    tokio::time::sleep(std::time::Duration::from_nanos(500)).await;
+    fs_infos
 }
 
 #[derive(Debug, Clone)]
@@ -418,8 +510,8 @@ impl FsInfo {
         }
     }
 
-    fn get_default_icon_handle(&self) -> svg::Handle {
-        if let Some(icon) = self.get_text_icon("Adwaita") {
+    fn get_default_generate_icon_handle(&self, theme: &str) -> svg::Handle {
+        if let Some(icon) = get_icon(theme, self.icon()) {
             return svg::Handle::from_path(icon);
         }
         if self.is_dir() {
@@ -427,6 +519,13 @@ impl FsInfo {
         } else {
             svg::Handle::from_memory(TEXT_IMAGE)
         }
+    }
+
+    fn get_default_icon_handle(&self) -> svg::Handle {
+        if let Some(icon) = self.get_text_icon("Adwaita") {
+            return svg::Handle::from_path(icon);
+        }
+        self.get_default_generate_icon_handle("Adwaita")
     }
 
     fn get_icon(&self, preview_image: bool) -> Element<Message> {
