@@ -469,9 +469,14 @@ impl FsInfo {
             .width(BUTTON_WIDTH)
             .height(BUTTON_WIDTH);
 
-        let is_selected = current_selected.as_ref().is_some_and(|path| {
-            path.canonicalize().unwrap().as_os_str()
-                == self.path().canonicalize().unwrap().as_os_str()
+        let is_selected = current_selected.as_ref().is_some_and(|path| 'selected: {
+            let Ok(origin_path) = path.canonicalize() else {
+                break 'selected false;
+            };
+            let Ok(self_path) = self.path().canonicalize() else {
+                break 'selected false;
+            };
+            origin_path.as_os_str() == self_path.as_os_str()
         });
 
         let dir_can_enter = self.is_dir() && self.is_readable();
