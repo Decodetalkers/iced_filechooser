@@ -367,6 +367,24 @@ impl FsInfo {
         self.icon() == "image-x-generic"
     }
 
+    fn get_text_icon(&self, theme: &str) -> Option<String> {
+        let icon = self.icon();
+        if icon != "text-x-generic" {
+            return None;
+        }
+
+        let FsInfo::File { mimeinfo, .. } = self else {
+            return None;
+        };
+
+        let Some(iconname) = mimeinfo.first() else {
+            return None;
+        };
+
+        let newicon = iconname.to_string().replace('/', "-");
+        get_icon(theme, newicon.as_str())
+    }
+
     pub fn icon(&self) -> &str {
         match self {
             Self::File { icon, .. } => icon.as_str(),
@@ -399,8 +417,8 @@ impl FsInfo {
         }
     }
 
-    fn get_icon_handle(&self) -> svg::Handle {
-        if let Some(icon) = get_icon("Adwaita", self.icon()) {
+    fn get_default_icon_handle(&self) -> svg::Handle {
+        if let Some(icon) = self.get_text_icon("Adwaita") {
             return svg::Handle::from_path(icon);
         }
         if self.is_dir() {
@@ -412,12 +430,18 @@ impl FsInfo {
 
     fn get_icon(&self, preview_image: bool) -> Element<Message> {
         if self.is_svg() {
-            return svg(svg::Handle::from_path(self.path())).into();
+            return svg(svg::Handle::from_path(self.path()))
+                .height(100)
+                .width(Length::Fill)
+                .into();
         }
         if self.is_image() && preview_image {
-            return image(self.path()).into();
+            return image(self.path()).width(Length::Fill).into();
         }
-        svg(self.get_icon_handle()).into()
+        svg(self.get_default_icon_handle())
+            .height(100)
+            .width(Length::Fill)
+            .into()
     }
 
     fn right_view(&self) -> Element<Message> {
