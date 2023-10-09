@@ -86,9 +86,14 @@ impl DirUnit {
     }
 
     fn find_unit(&self, path: &Path) -> Option<&FsInfo> {
-        self.fs_infos().iter().find(|iter| {
-            iter.path().canonicalize().unwrap().as_os_str()
-                == path.canonicalize().unwrap().as_os_str()
+        self.fs_infos().iter().find(|iter| 'selected: {
+            let Ok(origin_path) = path.canonicalize() else {
+                break 'selected false;
+            };
+            let Ok(self_path) = iter.path().canonicalize() else {
+                break 'selected false;
+            };
+            self_path.as_os_str() == origin_path.as_os_str()
         })
     }
 
