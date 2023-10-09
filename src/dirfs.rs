@@ -1,4 +1,6 @@
-use iced::widget::{button, checkbox, column, container, image, row, scrollable, svg, text, Space};
+use iced::widget::{
+    button, checkbox, column, container, image, row, scrollable, svg, text, text_input, Space,
+};
 use iced::{alignment, Font};
 use iced::{theme, Element, Length};
 use libc::{S_IRGRP, S_IROTH, S_IRUSR, S_IWGRP, S_IWOTH, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR};
@@ -18,6 +20,7 @@ use xdg_mime::SharedMimeInfo;
 use once_cell::sync::Lazy;
 
 static MIME: Lazy<SharedMimeInfo> = Lazy::new(SharedMimeInfo::new);
+static INPUT_ID: Lazy<text_input::Id> = Lazy::new(text_input::Id::unique);
 
 const TEXT_IMAGE: &[u8] = include_bytes!("../resources/text-plain.svg");
 
@@ -41,6 +44,8 @@ pub struct DirUnit {
     is_end: bool,
     infos: Vec<FsInfo>,
     current_dir: PathBuf,
+    glob_pattern: String,
+    glob_pattern_cache: String,
 }
 
 fn get_dir_name(dir: &Path) -> String {
@@ -97,6 +102,14 @@ impl DirUnit {
         })
     }
 
+    pub fn set_cache_pattern(&mut self, pattern: &str) {
+        self.glob_pattern_cache = pattern.to_string();
+    }
+
+    pub fn set_pattern(&mut self) {
+        self.glob_pattern = self.glob_pattern_cache.clone();
+    }
+
     fn main_grid(
         &self,
         show_hide: bool,
@@ -106,11 +119,16 @@ impl DirUnit {
         select_dir: bool,
     ) -> Element<Message> {
         let mut grid = Grid::with_column_width(COLUMN_WIDTH);
-        let filter_way = |dir: &&FsInfo| show_hide || !dir.is_hidden();
-        let infowidth = self.fs_infos().iter().filter(filter_way).count();
-        if infowidth > 500 {
+        let filter_way = |dir: &&FsInfo| {
+            (show_hide || !dir.is_hidden())
+                && glob::Pattern::new(&format!("*{}*", self.glob_pattern))
+                    .unwrap()
+                    .matches(dir.name())
+        };
+        let nottoshowall = self.fs_infos().iter().filter(filter_way).count() > 200;
+        if nottoshowall {
             let mut iter = self.fs_infos().iter().filter(filter_way);
-            for _ in 0..500 {
+            for _ in 0..200 {
                 let dir = iter.next().unwrap();
                 grid = grid.push(dir.view(select_dir, preview_image, current_selected));
             }
@@ -120,9 +138,28 @@ impl DirUnit {
             }
         };
         let rightviewinfo = current_selected.as_ref().and_then(|p| self.find_unit(p));
+
+        let mainview: Element<Message> = if nottoshowall {
+            column![
+                container(grid).width(Length::Fill).center_x(),
+                text("To much, not to show")
+                    .font(Font {
+                        weight: iced::font::Weight::Medium,
+                        ..Default::default()
+                    })
+                    .height(20)
+                    .width(Length::Fill)
+                    .horizontal_alignment(alignment::Horizontal::Center)
+            ]
+            .width(Length::Fill)
+            .into()
+        } else {
+            container(grid).center_x().width(Length::Fill).into()
+        };
+
         match rightviewinfo {
             Some(info) => Split::new(
-                scrollable(container(grid).center_x().width(Length::Fill)),
+                scrollable(mainview),
                 info.right_view(),
                 *right_spliter,
                 split::Axis::Vertical,
@@ -131,7 +168,7 @@ impl DirUnit {
             .width(Length::Fill)
             .padding(10.0)
             .into(),
-            None => scrollable(container(grid).center_x().width(Length::Fill)).into(),
+            None => scrollable(mainview).into(),
         }
     }
 
@@ -199,6 +236,16 @@ impl DirUnit {
         .into()
     }
 
+    fn searchbar(&self) -> Element<Message> {
+        text_input("Search Pattern", self.glob_pattern_cache.as_str())
+            .id(INPUT_ID.clone())
+            .on_input(Message::SearchPatternCachedChanged)
+            .on_submit(Message::SearchPatternChanged)
+            .padding(5)
+            .size(15)
+            .into()
+    }
+
     fn title_bar(&self, show_hide: bool, preview_image: bool) -> Element<Message> {
         let current_dir = fs::canonicalize(&self.current_dir).unwrap();
         let mut rowvec: Vec<Element<Message>> = Vec::new();
@@ -238,6 +285,7 @@ impl DirUnit {
                 .size(20)
                 .into(),
         ]);
+        rowvec.push(self.searchbar());
         container(
             row(rowvec)
                 .spacing(10)
@@ -253,6 +301,8 @@ impl DirUnit {
             is_end: false,
             infos: Vec::new(),
             current_dir: dir.to_path_buf(),
+            glob_pattern: String::new(),
+            glob_pattern_cache: String::new(),
         }
     }
 

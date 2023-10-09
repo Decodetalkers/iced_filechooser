@@ -6,7 +6,7 @@ use dirfs::{update_dir_infos, DirUnit, FsInfo};
 use iced::executor;
 use iced::{Application, Command, Element, Settings, Theme};
 
-pub fn main() -> iced::Result {
+fn main() -> iced::Result {
     FileChooser::run(Settings::default())
 }
 
@@ -28,6 +28,8 @@ pub enum Message {
     RequestShowHide(bool),
     RequestShowImage(bool),
     RequestAdjustRightSpliter(u16),
+    SearchPatternCachedChanged(String),
+    SearchPatternChanged,
 }
 
 impl Application for FileChooser {
@@ -81,6 +83,14 @@ impl Application for FileChooser {
                 } else {
                     self.current_selected = Some(path);
                 }
+                Command::none()
+            }
+            Message::SearchPatternCachedChanged(pattern) => {
+                self.dir.set_cache_pattern(&pattern);
+                Command::none()
+            }
+            Message::SearchPatternChanged => {
+                self.dir.set_pattern();
                 Command::none()
             }
             Message::RequestAdjustRightSpliter(right_size) => {
