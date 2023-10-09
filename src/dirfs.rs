@@ -196,11 +196,17 @@ impl DirUnit {
 
     pub fn polldir(&mut self) -> Result<(), Box<dyn Error>> {
         for _ in 0..50 {
-            self.polldir_unit()?;
+            self.polldir_unit().ok();
             if self.ls_end() {
                 break;
             }
         }
+        self.infos.sort_by(|a, b| {
+            a.name()
+                .to_string()
+                .partial_cmp(&b.name().to_string())
+                .unwrap()
+        });
         Ok(())
     }
     pub fn polldir_unit(&mut self) -> Result<(), Box<dyn Error>> {
@@ -265,12 +271,7 @@ impl DirUnit {
                 mimeinfo,
             })
         }
-        self.infos.sort_by(|a, b| {
-            a.name()
-                .to_string()
-                .partial_cmp(&b.name().to_string())
-                .unwrap()
-        });
+
         Ok(())
     }
 
