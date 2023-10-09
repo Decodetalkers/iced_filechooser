@@ -1,5 +1,5 @@
-use iced::alignment;
-use iced::widget::{button, checkbox, column, container, image, row, scrollable, svg, text};
+use iced::widget::{button, checkbox, column, container, image, row, scrollable, svg, text, Space};
+use iced::{alignment, Font};
 use iced::{theme, Element, Length};
 use libc::{S_IRGRP, S_IROTH, S_IRUSR, S_IWGRP, S_IWOTH, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR};
 use std::str::FromStr;
@@ -131,12 +131,24 @@ impl DirUnit {
     }
 
     fn loading_page(&self) -> Element<Message> {
-        container(svg(svg::Handle::from_memory(LOADING)))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        container(column![
+            Space::new(Length::Fill, Length::Fill),
+            row![
+                Space::new(Length::Fill, 20),
+                text("please waiting").font(Font {
+                    weight: iced::font::Weight::Bold,
+                    ..Default::default()
+                }),
+                Space::new(5, 20),
+                svg(svg::Handle::from_memory(LOADING)).width(20).height(20)
+            ]
+            .align_items(iced::Alignment::End)
+        ])
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x()
+        .center_y()
+        .into()
     }
 
     fn bottom_view(
