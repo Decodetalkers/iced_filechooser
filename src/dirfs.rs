@@ -420,28 +420,9 @@ impl FsInfo {
         svg(self.get_icon_handle()).into()
     }
 
-    fn get_right_view_icon(&self) -> Element<Message> {
-        if self.is_svg() {
-            return svg(svg::Handle::from_path(self.path()))
-                .width(Length::Fixed(200.0))
-                .height(Length::Fixed(200.0))
-                .into();
-        }
-        if self.is_image() {
-            return image(self.path())
-                .width(Length::Fixed(200.0))
-                .height(Length::Fixed(200.0))
-                .into();
-        }
-        svg(self.get_icon_handle())
-            .width(Length::Fixed(200.0))
-            .height(Length::Fixed(200.0))
-            .into()
-    }
-
     fn right_view(&self) -> Element<Message> {
         column![
-            self.get_right_view_icon(),
+            self.get_icon(true),
             text(self.permission())
                 .horizontal_alignment(alignment::Horizontal::Center)
                 .width(Length::Fill),
@@ -449,7 +430,6 @@ impl FsInfo {
                 .horizontal_alignment(alignment::Horizontal::Center)
                 .width(Length::Fill)
         ]
-        .width(Length::Fixed(200.0))
         .into()
     }
 
