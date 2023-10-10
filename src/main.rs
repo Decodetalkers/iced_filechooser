@@ -1,5 +1,6 @@
 mod dirfs;
 mod utils;
+mod icon_cache;
 use std::path::{Path, PathBuf};
 
 use dirfs::{update_dir_infos, DirUnit, FsInfo};

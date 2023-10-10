@@ -12,6 +12,7 @@ use std::{
 
 use iced_aw::{split, Grid, Split};
 
+use crate::icon_cache::{get_icon_handle, IconKey};
 use crate::utils::get_icon;
 
 use mime::Mime;
@@ -22,16 +23,12 @@ use once_cell::sync::Lazy;
 static MIME: Lazy<SharedMimeInfo> = Lazy::new(SharedMimeInfo::new);
 static INPUT_ID: Lazy<text_input::Id> = Lazy::new(text_input::Id::unique);
 
-const TEXT_IMAGE: &[u8] = include_bytes!("../resources/text-plain.svg");
+pub const GO_PREVIOUS: &[u8] = include_bytes!("../resources/go-previous.svg");
 
-const DIR_IMAGE: &[u8] = include_bytes!("../resources/inode-directory.svg");
+pub const LOADING: &[u8] = include_bytes!("../resources/Loading_icon_no_fade.svg");
 
-const GO_PREVIOUS: &[u8] = include_bytes!("../resources/go-previous.svg");
-
-const LOADING: &[u8] = include_bytes!("../resources/Loading_icon_no_fade.svg");
-
-const DIR_ICON: &str = "inode-directory";
-const TEXT_ICON: &str = "text-plain";
+pub const DIR_ICON: &str = "inode-directory";
+pub const TEXT_ICON: &str = "text-plain";
 
 use crate::Message;
 
@@ -318,6 +315,7 @@ impl DirUnit {
         &self.infos
     }
 }
+
 pub async fn update_dir_infos<P: AsRef<Path>>(path: P) -> (Vec<FsInfo>, PathBuf) {
     let mut fs_infos = Vec::new();
     let Ok(dirs) = fs::read_dir(&path) else {
@@ -522,18 +520,18 @@ impl FsInfo {
 
     fn get_default_generate_icon_handle(&self, theme: &str) -> svg::Handle {
         if let Some(icon) = get_icon(theme, self.icon()) {
-            return svg::Handle::from_path(icon);
+            return get_icon_handle(IconKey::Path(icon));
         }
         if self.is_dir() {
-            svg::Handle::from_memory(DIR_IMAGE)
+            get_icon_handle(IconKey::Dir)
         } else {
-            svg::Handle::from_memory(TEXT_IMAGE)
+            get_icon_handle(IconKey::Text)
         }
     }
 
     fn get_default_icon_handle(&self) -> svg::Handle {
         if let Some(icon) = self.get_text_icon("Adwaita") {
-            return svg::Handle::from_path(icon);
+            return get_icon_handle(IconKey::Path(icon));
         }
         self.get_default_generate_icon_handle("Adwaita")
     }
