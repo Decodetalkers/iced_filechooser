@@ -28,9 +28,12 @@ pub fn get_icon_handle(key: IconKey) -> svg::Handle {
     drop(icon_cache);
     let mut icon_cache = ICON_CACHE.write().unwrap();
     if let IconKey::Path(ref path) = key {
-        let handle = svg::Handle::from_path(path);
-        icon_cache.insert(key, handle.clone());
-        return handle;
+        if let Ok(mem) = std::fs::read(path) {
+            let handle = svg::Handle::from_memory(mem);
+            icon_cache.insert(key, handle.clone());
+            return handle;
+        };
+        return svg::Handle::from_path(path);
     }
     if let IconKey::Text = key {
         let text_handle = svg::Handle::from_memory(TEXT_IMAGE);
