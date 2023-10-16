@@ -25,6 +25,10 @@ static INPUT_ID: Lazy<text_input::Id> = Lazy::new(text_input::Id::unique);
 
 pub const GO_PREVIOUS: &[u8] = include_bytes!("../resources/go-previous.svg");
 
+pub const SIDE_BAR_EXPAND: &[u8] = include_bytes!("../resources/sidebar-expand.svg");
+
+pub const SIDE_BAR_COLLAPSE: &[u8] = include_bytes!("../resources/sidebar-collapse.svg");
+
 pub const LOADING: &[u8] = include_bytes!("../resources/Loading_icon_no_fade.svg");
 
 pub const DIR_ICON: &str = "inode-directory";
@@ -76,6 +80,29 @@ impl DirUnit {
                 .partial_cmp(&b.name().to_string())
                 .unwrap()
         });
+    }
+
+    fn get_sizebar_icon(&self, expand: bool) -> Element<Message> {
+        let icon_name = if expand {
+            "sidebar-expand"
+        } else {
+            "sidebar-collapse"
+        };
+        if let Some(icon) = get_icon("Adwaita", icon_name) {
+            return svg(svg::Handle::from_path(icon))
+                .width(20)
+                .height(20)
+                .into();
+        }
+        let svg_source = if expand {
+            SIDE_BAR_EXPAND
+        } else {
+            SIDE_BAR_COLLAPSE
+        };
+        svg(svg::Handle::from_memory(svg_source))
+            .width(20)
+            .height(20)
+            .into()
     }
 
     fn get_prevouse_icon(&self) -> Element<Message> {
@@ -249,7 +276,12 @@ impl DirUnit {
 
     fn title_bar(&self, show_hide: bool, preview_image: bool) -> Element<Message> {
         let current_dir = fs::canonicalize(&self.current_dir).unwrap();
+
         let mut rowvec: Vec<Element<Message>> = Vec::new();
+        let btn_sizebar = button(self.get_sizebar_icon(true))
+            .style(theme::Button::Secondary)
+            .into();
+        rowvec.push(btn_sizebar);
         if let Some(parent) = self.get_parent_path() {
             let btn: Element<Message> = button(self.get_prevouse_icon())
                 .style(theme::Button::Secondary)
