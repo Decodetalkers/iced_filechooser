@@ -4,14 +4,17 @@ mod utils;
 use std::path::{Path, PathBuf};
 
 use dirfs::{update_dir_infos, DirUnit, FsInfo};
-use iced::executor;
+use iced::widget::text;
 use iced::window::Id;
+use iced::{executor, Length};
 use iced::{Command, Element, Theme};
 use iced_layershell::reexport::Anchor;
 use iced_layershell::settings::{LayerShellSettings, Settings};
 use iced_layershell::Application;
 use iced_runtime::command::Action;
 use iced_runtime::window::Action as WindowAction;
+
+use iced_aw::{split, Split};
 
 fn main() -> Result<(), iced_layershell::Error> {
     FileChooser::run(Settings {
@@ -31,6 +34,7 @@ struct FileChooser {
     preview_big_image: bool,
     current_selected: Option<PathBuf>,
     right_spliter: Option<u16>,
+    left_spliter: Option<u16>,
 }
 
 fn is_samedir(patha: &Path, pathb: &Path) -> bool {
@@ -52,6 +56,7 @@ pub enum Message {
     RequestShowHide(bool),
     RequestShowImage(bool),
     RequestAdjustRightSpliter(u16),
+    RequestAdjustLeftSpliter(u16),
     SearchPatternCachedChanged(String),
     SearchPatternChanged,
     Confirm,
@@ -72,6 +77,7 @@ impl Application for FileChooser {
                 preview_big_image: false,
                 current_selected: None,
                 right_spliter: None,
+                left_spliter: Some(400),
             },
             Command::perform(update_dir_infos("."), Message::RequestNextDirs),
         )
@@ -125,6 +131,10 @@ impl Application for FileChooser {
                 self.right_spliter = Some(right_size);
                 Command::none()
             }
+            Message::RequestAdjustLeftSpliter(left_size) => {
+                self.left_spliter = Some(left_size);
+                Command::none()
+            }
             Message::Cancel | Message::Confirm => {
                 Command::single(Action::Window(WindowAction::Close(Id::MAIN)))
             }
@@ -133,12 +143,27 @@ impl Application for FileChooser {
     }
 
     fn view(&self) -> Element<Message> {
-        self.dir.view(
-            self.showhide,
-            self.preview_big_image,
-            self.right_spliter.as_ref(),
-            self.current_selected.as_ref(),
-            false,
+        self.main_view()
+    }
+}
+
+impl FileChooser {
+    fn main_view(&self) -> Element<Message> {
+        Split::new(
+            text("TODO: show the selected items"),
+            self.dir.view(
+                self.showhide,
+                self.preview_big_image,
+                self.right_spliter.as_ref(),
+                self.current_selected.as_ref(),
+                false,
+            ),
+            self.left_spliter,
+            split::Axis::Vertical,
+            Message::RequestAdjustLeftSpliter,
         )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
     }
 }
