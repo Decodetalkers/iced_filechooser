@@ -144,6 +144,7 @@ impl DirUnit {
         right_spliter: Option<&u16>,
         current_selected: Option<&PathBuf>,
         select_dir: bool,
+        seclected_paths: &[PathBuf],
     ) -> Element<Message> {
         let mut grid = Grid::new().column_width(COLUMN_WIDTH);
         let filter_way = |dir: &&FsInfo| {
@@ -158,7 +159,12 @@ impl DirUnit {
             let mut views = vec![];
             for index in 0..200 {
                 let dir = iter.next().unwrap();
-                views.push(dir.view(select_dir, preview_image, current_selected));
+                views.push(dir.view(
+                    select_dir,
+                    preview_image,
+                    current_selected,
+                    seclected_paths.contains(&dir.path()),
+                ));
                 if (index + 1) % 4 == 0 {
                     let mut newviews = vec![];
                     std::mem::swap(&mut views, &mut newviews);
@@ -171,7 +177,12 @@ impl DirUnit {
         } else {
             let mut views = vec![];
             for (index, dir) in self.fs_infos().iter().filter(filter_way).enumerate() {
-                views.push(dir.view(select_dir, preview_image, current_selected));
+                views.push(dir.view(
+                    select_dir,
+                    preview_image,
+                    current_selected,
+                    seclected_paths.contains(&dir.path()),
+                ));
                 if (index + 1) % 4 == 0 {
                     let mut newviews = vec![];
                     std::mem::swap(&mut views, &mut newviews);
@@ -246,6 +257,7 @@ impl DirUnit {
         right_spliter: Option<&u16>,
         current_selected: Option<&PathBuf>,
         select_dir: bool,
+        seclected_paths: &[PathBuf],
     ) -> Element<Message> {
         if self.is_end {
             self.main_grid(
@@ -254,6 +266,7 @@ impl DirUnit {
                 right_spliter,
                 current_selected,
                 select_dir,
+                seclected_paths,
             )
         } else {
             self.loading_page()
@@ -267,6 +280,7 @@ impl DirUnit {
         right_spliter: Option<&u16>,
         current_selected: Option<&PathBuf>,
         select_dir: bool,
+        seclected_paths: &[PathBuf],
     ) -> Element<Message> {
         column![
             self.title_bar(show_hide, preview_image),
@@ -275,7 +289,8 @@ impl DirUnit {
                 preview_image,
                 right_spliter,
                 current_selected,
-                select_dir
+                select_dir,
+                seclected_paths
             ),
             self.confirm_buttons(),
             Space::new(0, 5.)
@@ -634,6 +649,7 @@ impl FsInfo {
         select_dir: bool,
         preview_image: bool,
         current_selected: Option<&PathBuf>,
+        is_checked: bool,
     ) -> Element<Message> {
         let mut file_btn = button(self.get_icon(preview_image))
             .padding(10)
@@ -667,8 +683,8 @@ impl FsInfo {
                 file_btn = file_btn.style(theme::Button::Primary);
             }
             container(
-                checkbox(self.name(), false)
-                    .on_toggle(|_| Message::Check)
+                checkbox(self.name(), is_checked)
+                    .on_toggle(|checked| Message::RequestMutiSelect((checked, self.path().clone())))
                     .width(BUTTON_WIDTH),
             )
             .width(Length::Fill)

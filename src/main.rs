@@ -4,7 +4,7 @@ mod utils;
 use std::path::{Path, PathBuf};
 
 use dirfs::{update_dir_infos, DirUnit, FsInfo};
-use iced::widget::text;
+use iced::widget::{checkbox, scrollable, Column};
 use iced::window::Id;
 use iced::{executor, Length};
 use iced::{Command, Element, Theme};
@@ -32,6 +32,7 @@ struct FileChooser {
     dir: DirUnit,
     showhide: bool,
     preview_big_image: bool,
+    selected_paths: Vec<PathBuf>,
     current_selected: Option<PathBuf>,
     right_spliter: Option<u16>,
     left_spliter: Option<u16>,
@@ -49,7 +50,7 @@ fn is_samedir(patha: &Path, pathb: &Path) -> bool {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Check,
+    RequestMutiSelect((bool, PathBuf)),
     RequestNextDirs((Vec<FsInfo>, PathBuf)),
     RequestSelect(PathBuf),
     RequestEnter(PathBuf),
@@ -75,6 +76,7 @@ impl Application for FileChooser {
                 dir: DirUnit::enter(std::env::current_dir().unwrap().as_path()),
                 showhide: false,
                 preview_big_image: false,
+                selected_paths: Vec::new(),
                 current_selected: None,
                 right_spliter: None,
                 left_spliter: Some(400),
@@ -108,6 +110,21 @@ impl Application for FileChooser {
                 self.preview_big_image = showimage;
                 Command::none()
             }
+            Message::RequestMutiSelect((checked, file_path)) => {
+                if checked {
+                    if self.selected_paths.contains(&file_path) {
+                        return Command::none();
+                    }
+                    self.selected_paths.push(file_path);
+                } else {
+                    let Some(index) = self.selected_paths.iter().position(|p| *p == file_path)
+                    else {
+                        return Command::none();
+                    };
+                    self.selected_paths.remove(index);
+                }
+                Command::none()
+            }
             Message::RequestSelect(path) => {
                 if self.current_selected.clone().is_some_and(|p| {
                     p.canonicalize().unwrap().as_os_str()
@@ -138,7 +155,6 @@ impl Application for FileChooser {
             Message::Cancel | Message::Confirm => {
                 Command::single(Action::Window(WindowAction::Close(Id::MAIN)))
             }
-            _ => Command::none(),
         }
     }
 
@@ -148,15 +164,27 @@ impl Application for FileChooser {
 }
 
 impl FileChooser {
+    fn selected_view(&self) -> Element<Message> {
+        let mut column = Column::new();
+        for p in self.selected_paths.iter() {
+            let rp = std::fs::canonicalize(p).unwrap();
+            let name = rp.to_str().unwrap();
+            column = column.push(
+                checkbox(name, true).on_toggle(|_| Message::RequestMutiSelect((false, p.clone()))),
+            );
+        }
+        scrollable(column).height(Length::Fill).into()
+    }
     fn main_view(&self) -> Element<Message> {
         Split::new(
-            text("TODO: show the selected items"),
+            self.selected_view(),
             self.dir.view(
                 self.showhide,
                 self.preview_big_image,
                 self.right_spliter.as_ref(),
                 self.current_selected.as_ref(),
                 false,
+                &self.selected_paths,
             ),
             self.left_spliter,
             split::Axis::Vertical,
