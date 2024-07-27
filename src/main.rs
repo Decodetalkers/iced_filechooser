@@ -52,7 +52,7 @@ impl Application for FileChooser {
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
         (
             Self {
-                dir: DirUnit::enter(&PathBuf::from(".")),
+                dir: DirUnit::enter(std::env::current_dir().unwrap().as_path()),
                 showhide: false,
                 preview_big_image: false,
                 current_selected: None,

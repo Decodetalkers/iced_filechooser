@@ -172,6 +172,9 @@ impl DirUnit {
                     current_selected
                 )));
             }
+            if !views.is_empty() {
+                grid = grid.push(GridRow::with_elements(views));
+            }
         } else {
             let mut index = 0;
             let mut views = vec![];
@@ -183,6 +186,9 @@ impl DirUnit {
                     grid = grid.push(GridRow::with_elements(newviews));
                 }
                 index += 1;
+            }
+            if !views.is_empty() {
+                grid = grid.push(GridRow::with_elements(views));
             }
         };
         let rightviewinfo = current_selected.as_ref().and_then(|p| self.find_unit(p));
