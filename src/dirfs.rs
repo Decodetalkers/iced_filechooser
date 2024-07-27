@@ -211,9 +211,10 @@ impl DirUnit {
                 Message::RequestAdjustRightSpliter,
             )
             .width(Length::Fill)
+            .height(Length::Fill)
             .padding(10.0)
             .into(),
-            None => scrollable(mainview).into(),
+            None => scrollable(mainview).height(Length::Fill).into(),
         }
     }
 
@@ -276,7 +277,6 @@ impl DirUnit {
                 current_selected,
                 select_dir
             ),
-            Space::new(0, Length::Fill),
             self.confirm_buttons(),
             Space::new(0, 5.)
         ]
