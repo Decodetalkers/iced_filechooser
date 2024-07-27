@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use iced_aw::{grid_row, split, Grid, GridRow, Split};
+use iced_aw::{split, Grid, GridRow, Split};
 
 use crate::icon_cache::{get_icon_handle, IconKey};
 use crate::utils::get_icon;
@@ -165,12 +165,6 @@ impl DirUnit {
                     std::mem::swap(&mut views, &mut newviews);
                     grid = grid.push(GridRow::with_elements(newviews));
                 }
-
-                grid = grid.push(grid_row!(dir.view(
-                    select_dir,
-                    preview_image,
-                    current_selected
-                )));
             }
             if !views.is_empty() {
                 grid = grid.push(GridRow::with_elements(views));
