@@ -5,10 +5,20 @@ use std::path::{Path, PathBuf};
 
 use dirfs::{update_dir_infos, DirUnit, FsInfo};
 use iced::executor;
-use iced::{Application, Command, Element, Settings, Theme};
+use iced::{Command, Element, Theme};
+use iced_layershell::reexport::Anchor;
+use iced_layershell::settings::{LayerShellSettings, Settings};
+use iced_layershell::Application;
 
-fn main() -> iced::Result {
-    FileChooser::run(Settings::default())
+fn main() -> Result<(), iced_layershell::Error> {
+    FileChooser::run(Settings {
+        layer_settings: LayerShellSettings {
+            margins: (200, 200, 200, 200),
+            anchor: Anchor::Left | Anchor::Right | Anchor::Top | Anchor::Bottom,
+            ..Default::default()
+        },
+        ..Default::default()
+    })
 }
 
 #[derive(Debug)]
@@ -62,7 +72,7 @@ impl Application for FileChooser {
         )
     }
 
-    fn title(&self) -> String {
+    fn namespace(&self) -> String {
         String::from("Iced Filechooser")
     }
 
