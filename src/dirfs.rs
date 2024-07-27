@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use iced_aw::{split, Grid, Split};
+use iced_aw::{grid_row, split, Grid, Split};
 
 use crate::icon_cache::{get_icon_handle, IconKey};
 use crate::utils::get_icon;
@@ -146,7 +146,7 @@ impl DirUnit {
         current_selected: &Option<PathBuf>,
         select_dir: bool,
     ) -> Element<Message> {
-        let mut grid = Grid::with_column_width(COLUMN_WIDTH);
+        let mut grid = Grid::new().column_width(COLUMN_WIDTH);
         let filter_way = |dir: &&FsInfo| {
             (show_hide || !dir.is_hidden())
                 && glob::Pattern::new(&format!("*{}*", self.glob_pattern))
@@ -158,11 +158,19 @@ impl DirUnit {
             let mut iter = self.fs_infos().iter().filter(filter_way);
             for _ in 0..200 {
                 let dir = iter.next().unwrap();
-                grid = grid.push(dir.view(select_dir, preview_image, current_selected));
+                grid = grid.push(grid_row!(dir.view(
+                    select_dir,
+                    preview_image,
+                    current_selected
+                )));
             }
         } else {
             for dir in self.fs_infos().iter().filter(filter_way) {
-                grid = grid.push(dir.view(select_dir, preview_image, current_selected));
+                grid = grid.push(grid_row!(dir.view(
+                    select_dir,
+                    preview_image,
+                    current_selected
+                )));
             }
         };
         let rightviewinfo = current_selected.as_ref().and_then(|p| self.find_unit(p));
@@ -311,10 +319,12 @@ impl DirUnit {
 
         rowvec.append(&mut dirbtn);
         rowvec.append(&mut vec![
-            checkbox("show hide", show_hide, Message::RequestShowHide)
+            checkbox("show hide", show_hide)
+                .on_toggle(Message::RequestShowHide)
                 .size(20)
                 .into(),
-            checkbox("preivew image", preview_image, Message::RequestShowImage)
+            checkbox("preivew image", preview_image)
+                .on_toggle(Message::RequestShowImage)
                 .size(20)
                 .into(),
         ]);
@@ -634,9 +644,13 @@ impl FsInfo {
             if is_selected {
                 file_btn = file_btn.style(theme::Button::Primary);
             }
-            container(checkbox(self.name(), false, |_| Message::Check).width(BUTTON_WIDTH))
-                .width(Length::Fill)
-                .into()
+            container(
+                checkbox(self.name(), false)
+                    .on_toggle(|_| Message::Check)
+                    .width(BUTTON_WIDTH),
+            )
+            .width(Length::Fill)
+            .into()
         } else {
             container(
                 text(self.name())
