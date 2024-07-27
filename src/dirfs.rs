@@ -52,7 +52,6 @@ pub struct DirUnit {
 fn get_dir_name(dir: &Path) -> String {
     let mut output = dir
         .to_string_lossy()
-        .to_string()
         .split('/')
         .last()
         .unwrap_or("/")
@@ -170,16 +169,14 @@ impl DirUnit {
                 grid = grid.push(GridRow::with_elements(views));
             }
         } else {
-            let mut index = 0;
             let mut views = vec![];
-            for dir in self.fs_infos().iter().filter(filter_way) {
+            for (index, dir) in self.fs_infos().iter().filter(filter_way).enumerate() {
                 views.push(dir.view(select_dir, preview_image, current_selected));
                 if (index + 1) % 4 == 0 {
                     let mut newviews = vec![];
                     std::mem::swap(&mut views, &mut newviews);
                     grid = grid.push(GridRow::with_elements(newviews));
                 }
-                index += 1;
             }
             if !views.is_empty() {
                 grid = grid.push(GridRow::with_elements(views));
@@ -278,9 +275,24 @@ impl DirUnit {
                 right_spliter,
                 current_selected,
                 select_dir
-            )
+            ),
+            Space::new(0, Length::Fill),
+            self.confirm_buttons(),
+            Space::new(0, 5.)
         ]
         .spacing(10)
+        .into()
+    }
+
+    fn confirm_buttons(&self) -> Element<Message> {
+        row![
+            Space::new(Length::Fill, 5.),
+            button(text("Confirm")).on_press(Message::Confirm),
+            button(text("Cancel")).on_press(Message::Cancel),
+            Space::new(1, 20),
+        ]
+        .spacing(5.)
+        .width(Length::Fill)
         .into()
     }
 
@@ -532,9 +544,7 @@ impl FsInfo {
             return None;
         };
 
-        let Some(iconname) = mimeinfo.first() else {
-            return None;
-        };
+        let iconname = mimeinfo.first()?;
 
         let newicon = iconname.to_string().replace('/', "-");
         get_icon(theme, newicon.as_str())

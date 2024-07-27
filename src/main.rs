@@ -5,10 +5,13 @@ use std::path::{Path, PathBuf};
 
 use dirfs::{update_dir_infos, DirUnit, FsInfo};
 use iced::executor;
+use iced::window::Id;
 use iced::{Command, Element, Theme};
 use iced_layershell::reexport::Anchor;
 use iced_layershell::settings::{LayerShellSettings, Settings};
 use iced_layershell::Application;
+use iced_runtime::command::Action;
+use iced_runtime::window::Action as WindowAction;
 
 fn main() -> Result<(), iced_layershell::Error> {
     FileChooser::run(Settings {
@@ -51,6 +54,8 @@ pub enum Message {
     RequestAdjustRightSpliter(u16),
     SearchPatternCachedChanged(String),
     SearchPatternChanged,
+    Confirm,
+    Cancel,
 }
 
 impl Application for FileChooser {
@@ -119,6 +124,9 @@ impl Application for FileChooser {
             Message::RequestAdjustRightSpliter(right_size) => {
                 self.right_spliter = Some(right_size);
                 Command::none()
+            }
+            Message::Cancel | Message::Confirm => {
+                Command::single(Action::Window(WindowAction::Close(Id::MAIN)))
             }
             _ => Command::none(),
         }
