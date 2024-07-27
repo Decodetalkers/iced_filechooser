@@ -1,6 +1,6 @@
 mod dirfs;
-mod utils;
 mod icon_cache;
+mod utils;
 use std::path::{Path, PathBuf};
 
 use dirfs::{update_dir_infos, DirUnit, FsInfo};
@@ -118,8 +118,8 @@ impl Application for FileChooser {
         self.dir.view(
             self.showhide,
             self.preview_big_image,
-            &self.right_spliter,
-            &self.current_selected,
+            self.right_spliter.as_ref(),
+            self.current_selected.as_ref(),
             false,
         )
     }

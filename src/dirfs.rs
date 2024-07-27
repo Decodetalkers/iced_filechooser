@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use iced_aw::{grid_row, split, Grid, Split};
+use iced_aw::{grid_row, split, Grid, GridRow, Split};
 
 use crate::icon_cache::{get_icon_handle, IconKey};
 use crate::utils::get_icon;
@@ -142,8 +142,8 @@ impl DirUnit {
         &self,
         show_hide: bool,
         preview_image: bool,
-        right_spliter: &Option<u16>,
-        current_selected: &Option<PathBuf>,
+        right_spliter: Option<&u16>,
+        current_selected: Option<&PathBuf>,
         select_dir: bool,
     ) -> Element<Message> {
         let mut grid = Grid::new().column_width(COLUMN_WIDTH);
@@ -156,8 +156,16 @@ impl DirUnit {
         let nottoshowall = self.fs_infos().iter().filter(filter_way).count() > 200;
         if nottoshowall {
             let mut iter = self.fs_infos().iter().filter(filter_way);
-            for _ in 0..200 {
+            let mut views = vec![];
+            for index in 0..200 {
                 let dir = iter.next().unwrap();
+                views.push(dir.view(select_dir, preview_image, current_selected));
+                if (index + 1) % 4 == 0 {
+                    let mut newviews = vec![];
+                    std::mem::swap(&mut views, &mut newviews);
+                    grid = grid.push(GridRow::with_elements(newviews));
+                }
+
                 grid = grid.push(grid_row!(dir.view(
                     select_dir,
                     preview_image,
@@ -165,12 +173,16 @@ impl DirUnit {
                 )));
             }
         } else {
+            let mut index = 0;
+            let mut views = vec![];
             for dir in self.fs_infos().iter().filter(filter_way) {
-                grid = grid.push(grid_row!(dir.view(
-                    select_dir,
-                    preview_image,
-                    current_selected
-                )));
+                views.push(dir.view(select_dir, preview_image, current_selected));
+                if (index + 1) % 4 == 0 {
+                    let mut newviews = vec![];
+                    std::mem::swap(&mut views, &mut newviews);
+                    grid = grid.push(GridRow::with_elements(newviews));
+                }
+                index += 1;
             }
         };
         let rightviewinfo = current_selected.as_ref().and_then(|p| self.find_unit(p));
@@ -197,7 +209,7 @@ impl DirUnit {
             Some(info) => Split::new(
                 scrollable(mainview),
                 info.right_view(),
-                *right_spliter,
+                right_spliter.copied(),
                 split::Axis::Vertical,
                 Message::RequestAdjustRightSpliter,
             )
@@ -233,8 +245,8 @@ impl DirUnit {
         &self,
         show_hide: bool,
         preview_image: bool,
-        right_spliter: &Option<u16>,
-        current_selected: &Option<PathBuf>,
+        right_spliter: Option<&u16>,
+        current_selected: Option<&PathBuf>,
         select_dir: bool,
     ) -> Element<Message> {
         if self.is_end {
@@ -254,8 +266,8 @@ impl DirUnit {
         &self,
         show_hide: bool,
         preview_image: bool,
-        right_spliter: &Option<u16>,
-        current_selected: &Option<PathBuf>,
+        right_spliter: Option<&u16>,
+        current_selected: Option<&PathBuf>,
         select_dir: bool,
     ) -> Element<Message> {
         column![
@@ -611,7 +623,7 @@ impl FsInfo {
         &self,
         select_dir: bool,
         preview_image: bool,
-        current_selected: &Option<PathBuf>,
+        current_selected: Option<&PathBuf>,
     ) -> Element<Message> {
         let mut file_btn = button(self.get_icon(preview_image))
             .padding(10)
