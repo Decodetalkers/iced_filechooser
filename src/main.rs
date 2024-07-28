@@ -1,4 +1,4 @@
-use iced_filechooser::portal_option::FileChoosen;
+use iced_filechooser::portal_option::{FileChoosen, FileFilter};
 use iced_filechooser::FileChooser;
 
 use iced_layershell::reexport::Anchor;
@@ -18,7 +18,7 @@ fn main() -> Result<(), iced_layershell::Error> {
             modal: true,
             multiple: false,
             directory: true,
-            filters: Vec::new(),
+            filters: [FileFilter::new("Svg Image").mimetype("image/svg+xml")].to_vec(),
             current_filter: None,
             choices: Vec::new(),
             current_folder: None,

@@ -4,7 +4,7 @@ pub mod portal_option;
 mod utils;
 
 use dirfs::{update_dir_infos, DirUnit, FsInfo};
-use iced::widget::{checkbox, scrollable, Column};
+use iced::widget::{checkbox, column, combo_box, scrollable, Column};
 use iced::window::Id;
 use iced::{executor, Length};
 use iced::{Command, Element, Theme};
@@ -15,7 +15,7 @@ use iced_runtime::command::Action;
 use iced_runtime::window::Action as WindowAction;
 
 use iced_aw::{split, Split};
-use portal_option::FileChoosen;
+use portal_option::{FileChoosen, FileFilter};
 
 #[derive(Debug)]
 pub struct FileChooser {
@@ -27,6 +27,8 @@ pub struct FileChooser {
     right_spliter: Option<u16>,
     left_spliter: Option<u16>,
     choose_option: FileChoosen,
+    current_filter: FileFilter,
+    fiters: combo_box::State<FileFilter>,
 }
 
 fn is_samedir(patha: &Path, pathb: &Path) -> bool {
@@ -51,6 +53,9 @@ pub enum Message {
     RequestAdjustLeftSpliter(u16),
     SearchPatternCachedChanged(String),
     SearchPatternChanged,
+
+    FilterChanged(FileFilter),
+    // CONFIRM
     Confirm,
     Cancel,
 }
@@ -62,6 +67,9 @@ impl Application for FileChooser {
     type Theme = Theme;
 
     fn new(choose_option: Self::Flags) -> (Self, Command<Message>) {
+        let mut filters = [FileFilter::default()].to_vec();
+        let mut input_filters = choose_option.filters().to_vec();
+        filters.append(&mut input_filters);
         (
             Self {
                 dir: DirUnit::enter(std::env::current_dir().unwrap().as_path()),
@@ -71,7 +79,9 @@ impl Application for FileChooser {
                 current_selected: None,
                 right_spliter: None,
                 left_spliter: Some(400),
+                current_filter: choose_option.current_filter().cloned().unwrap_or_default(),
                 choose_option,
+                fiters: combo_box::State::new(filters),
             },
             Command::perform(update_dir_infos("."), Message::RequestNextDirs),
         )
@@ -157,6 +167,10 @@ impl Application for FileChooser {
             Message::Cancel | Message::Confirm => {
                 Command::single(Action::Window(WindowAction::Close(Id::MAIN)))
             }
+            Message::FilterChanged(filter) => {
+                self.current_filter = filter;
+                Command::none()
+            }
         }
     }
 
@@ -172,7 +186,18 @@ impl FileChooser {
     fn is_muti_filechooser(&self) -> bool {
         self.choose_option.is_muti_filechooser()
     }
-    fn selected_view(&self) -> Element<Message> {
+
+    fn filter_box(&self) -> Element<Message> {
+        combo_box(
+            &self.fiters,
+            "set filter",
+            Some(&self.current_filter),
+            Message::FilterChanged,
+        )
+        .into()
+    }
+
+    fn left_view(&self) -> Element<Message> {
         let mut column = Column::new();
         for p in self.selected_paths.iter() {
             let rp = std::fs::canonicalize(p).unwrap();
@@ -181,11 +206,15 @@ impl FileChooser {
                 checkbox(name, true).on_toggle(|_| Message::RequestMutiSelect((false, p.clone()))),
             );
         }
-        scrollable(column).height(Length::Fill).into()
+        column![
+            scrollable(column).height(Length::Fill).height(Length::Fill),
+            self.filter_box()
+        ]
+        .into()
     }
     fn main_view(&self) -> Element<Message> {
         Split::new(
-            self.selected_view(),
+            self.left_view(),
             self.dir.view(
                 self.showhide,
                 self.preview_big_image,

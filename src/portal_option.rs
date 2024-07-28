@@ -1,5 +1,6 @@
 use std::{
     ffi::{CString, OsStr},
+    fmt::Display,
     os::unix::ffi::OsStrExt,
     path::Path,
 };
@@ -37,7 +38,7 @@ impl<'de> Deserialize<'de> for FilePath {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[repr(u32)]
 pub enum FilterType {
     GlobPattern = 0,
@@ -55,6 +56,9 @@ impl FilterType {
         matches!(self, FilterType::GlobPattern)
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileFilter(String, Vec<(FilterType, String)>);
 
 impl FileFilter {
     /// Create a new file filter
@@ -79,10 +83,29 @@ impl FileFilter {
         self.1.push((FilterType::GlobPattern, pattern.to_owned()));
         self
     }
+
+    #[allow(unused)]
+    pub(crate) fn filters(&self) -> &Vec<(FilterType, String)> {
+        &self.1
+    }
 }
 
-#[derive(Debug, Clone)]
-pub struct FileFilter(String, Vec<(FilterType, String)>);
+impl Default for FileFilter {
+    fn default() -> Self {
+        Self("All files: (*)".to_string(), Vec::new())
+    }
+}
+
+impl Display for FileFilter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut display_info = format!("{} :", self.0.clone());
+
+        for (_, show) in self.1.iter() {
+            display_info.push_str(&format!(" {}", show));
+        }
+        write!(f, "{}", display_info)
+    }
+}
 
 impl FileFilter {
     /// The label of the filter.
@@ -259,6 +282,13 @@ impl FileChoosen {
         match self {
             Self::OpenFile { accept_label, .. } => accept_label,
             Self::SaveFile { accept_label, .. } => accept_label,
+        }
+    }
+
+    pub fn current_filter(&self) -> Option<&FileFilter> {
+        match self {
+            Self::OpenFile { current_filter, .. } => current_filter.as_ref(),
+            Self::SaveFile { current_filter, .. } => current_filter.as_ref(),
         }
     }
 
