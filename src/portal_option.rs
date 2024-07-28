@@ -194,7 +194,7 @@ impl Choice {
 }
 
 #[derive(Debug, Clone)]
-pub enum FileChoosen {
+pub enum FileChosen {
     OpenFile {
         handle_token: String,
         accept_label: String,
@@ -218,7 +218,7 @@ pub enum FileChoosen {
     },
 }
 
-impl Default for FileChoosen {
+impl Default for FileChosen {
     fn default() -> Self {
         Self::OpenFile {
             handle_token: "".to_string(),
@@ -234,13 +234,13 @@ impl Default for FileChoosen {
     }
 }
 
-impl FileChoosen {
+impl FileChosen {
     pub fn is_filechooser(&self) -> bool {
-        matches!(self, FileChoosen::OpenFile { .. })
+        matches!(self, FileChosen::OpenFile { .. })
     }
 
-    pub fn is_muti_filechooser(&self) -> bool {
-        matches!(self, FileChoosen::OpenFile { multiple: true, .. })
+    pub fn is_multi_filechooser(&self) -> bool {
+        matches!(self, FileChosen::OpenFile { multiple: true, .. })
     }
 
     pub fn is_savefile(&self) -> bool {
@@ -250,7 +250,7 @@ impl FileChoosen {
     pub fn is_directory(&self) -> bool {
         matches!(
             self,
-            FileChoosen::OpenFile {
+            FileChosen::OpenFile {
                 directory: true,
                 ..
             }

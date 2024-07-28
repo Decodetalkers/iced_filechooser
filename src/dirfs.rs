@@ -141,7 +141,7 @@ impl DirUnit {
         &self,
         show_hide: bool,
         preview_image: bool,
-        right_spliter: Option<&u16>,
+        right_splitter: Option<&u16>,
         current_selected: Option<&PathBuf>,
         select_dir: bool,
         seclected_paths: &[PathBuf],
@@ -217,9 +217,9 @@ impl DirUnit {
             Some(info) => Split::new(
                 scrollable(mainview),
                 info.right_view(),
-                right_spliter.copied(),
+                right_splitter.copied(),
                 split::Axis::Vertical,
-                Message::RequestAdjustRightSpliter,
+                Message::RequestAdjustRightSplitter,
             )
             .width(Length::Fill)
             .height(Length::Fill)
@@ -254,7 +254,7 @@ impl DirUnit {
         &self,
         show_hide: bool,
         preview_image: bool,
-        right_spliter: Option<&u16>,
+        right_splitter: Option<&u16>,
         current_selected: Option<&PathBuf>,
         select_dir: bool,
         seclected_paths: &[PathBuf],
@@ -263,7 +263,7 @@ impl DirUnit {
             self.main_grid(
                 show_hide,
                 preview_image,
-                right_spliter,
+                right_splitter,
                 current_selected,
                 select_dir,
                 seclected_paths,
@@ -277,7 +277,7 @@ impl DirUnit {
         &self,
         show_hide: bool,
         preview_image: bool,
-        right_spliter: Option<&u16>,
+        right_splitter: Option<&u16>,
         current_selected: Option<&PathBuf>,
         select_dir: bool,
         seclected_paths: &[PathBuf],
@@ -287,7 +287,7 @@ impl DirUnit {
             self.bottom_view(
                 show_hide,
                 preview_image,
-                right_spliter,
+                right_splitter,
                 current_selected,
                 select_dir,
                 seclected_paths
@@ -362,7 +362,7 @@ impl DirUnit {
                 .on_toggle(Message::RequestShowHide)
                 .size(20)
                 .into(),
-            checkbox("preivew image", preview_image)
+            checkbox("preview image", preview_image)
                 .on_toggle(Message::RequestShowImage)
                 .size(20)
                 .into(),
@@ -687,7 +687,7 @@ impl FsInfo {
             }
             container(
                 checkbox(self.name(), is_checked)
-                    .on_toggle(|checked| Message::RequestMutiSelect((checked, self.path().clone())))
+                    .on_toggle(|checked| Message::RequestMultiSelect((checked, self.path().clone())))
                     .width(BUTTON_WIDTH),
             )
             .width(Length::Fill)

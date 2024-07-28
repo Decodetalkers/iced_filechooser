@@ -15,7 +15,7 @@ use iced_runtime::command::Action;
 use iced_runtime::window::Action as WindowAction;
 
 use iced_aw::{split, Split};
-use portal_option::{FileChoosen, FileFilter};
+use portal_option::{FileChosen, FileFilter};
 
 #[derive(Debug)]
 pub struct FileChooser {
@@ -24,11 +24,11 @@ pub struct FileChooser {
     preview_big_image: bool,
     selected_paths: Vec<PathBuf>,
     current_selected: Option<PathBuf>,
-    right_spliter: Option<u16>,
-    left_spliter: Option<u16>,
-    choose_option: FileChoosen,
+    right_splitter: Option<u16>,
+    left_splitter: Option<u16>,
+    choose_option: FileChosen,
     current_filter: FileFilter,
-    fiters: combo_box::State<FileFilter>,
+    filters: combo_box::State<FileFilter>,
 }
 
 fn is_samedir(patha: &Path, pathb: &Path) -> bool {
@@ -43,14 +43,14 @@ fn is_samedir(patha: &Path, pathb: &Path) -> bool {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    RequestMutiSelect((bool, PathBuf)),
+    RequestMultiSelect((bool, PathBuf)),
     RequestNextDirs((Vec<FsInfo>, PathBuf)),
     RequestSelect(PathBuf),
     RequestEnter(PathBuf),
     RequestShowHide(bool),
     RequestShowImage(bool),
-    RequestAdjustRightSpliter(u16),
-    RequestAdjustLeftSpliter(u16),
+    RequestAdjustRightSplitter(u16),
+    RequestAdjustLeftSplitter(u16),
     SearchPatternCachedChanged(String),
     SearchPatternChanged,
 
@@ -62,7 +62,7 @@ pub enum Message {
 
 impl Application for FileChooser {
     type Message = Message;
-    type Flags = FileChoosen;
+    type Flags = FileChosen;
     type Executor = executor::Default;
     type Theme = Theme;
 
@@ -77,11 +77,11 @@ impl Application for FileChooser {
                 preview_big_image: false,
                 selected_paths: Vec::new(),
                 current_selected: None,
-                right_spliter: None,
-                left_spliter: Some(400),
+                right_splitter: None,
+                left_splitter: Some(400),
                 current_filter: choose_option.current_filter().cloned().unwrap_or_default(),
                 choose_option,
-                fiters: combo_box::State::new(filters),
+                filters: combo_box::State::new(filters),
             },
             Command::perform(update_dir_infos("."), Message::RequestNextDirs),
         )
@@ -112,9 +112,9 @@ impl Application for FileChooser {
                 self.preview_big_image = showimage;
                 Command::none()
             }
-            Message::RequestMutiSelect((checked, file_path)) => {
+            Message::RequestMultiSelect((checked, file_path)) => {
                 if checked {
-                    if !self.is_muti_filechooser() {
+                    if !self.is_multi_filechooser() {
                         self.selected_paths.clear();
                     }
                     if self.selected_paths.contains(&file_path) {
@@ -139,7 +139,7 @@ impl Application for FileChooser {
                 } else {
                     self.current_selected = Some(file_path.clone());
                 }
-                if !self.is_muti_filechooser() {
+                if !self.is_multi_filechooser() {
                     self.selected_paths.clear();
                 }
                 if self.selected_paths.contains(&file_path) {
@@ -156,12 +156,12 @@ impl Application for FileChooser {
                 self.dir.set_pattern();
                 Command::none()
             }
-            Message::RequestAdjustRightSpliter(right_size) => {
-                self.right_spliter = Some(right_size);
+            Message::RequestAdjustRightSplitter(right_size) => {
+                self.right_splitter = Some(right_size);
                 Command::none()
             }
-            Message::RequestAdjustLeftSpliter(left_size) => {
-                self.left_spliter = Some(left_size);
+            Message::RequestAdjustLeftSplitter(left_size) => {
+                self.left_splitter = Some(left_size);
                 Command::none()
             }
             Message::Cancel | Message::Confirm => {
@@ -183,13 +183,13 @@ impl FileChooser {
     fn is_directory(&self) -> bool {
         self.choose_option.is_directory()
     }
-    fn is_muti_filechooser(&self) -> bool {
-        self.choose_option.is_muti_filechooser()
+    fn is_multi_filechooser(&self) -> bool {
+        self.choose_option.is_multi_filechooser()
     }
 
     fn filter_box(&self) -> Element<Message> {
         combo_box(
-            &self.fiters,
+            &self.filters,
             "set filter",
             Some(&self.current_filter),
             Message::FilterChanged,
@@ -203,7 +203,7 @@ impl FileChooser {
             let rp = std::fs::canonicalize(p).unwrap();
             let name = rp.to_str().unwrap();
             column = column.push(
-                checkbox(name, true).on_toggle(|_| Message::RequestMutiSelect((false, p.clone()))),
+                checkbox(name, true).on_toggle(|_| Message::RequestMultiSelect((false, p.clone()))),
             );
         }
         column![
@@ -218,14 +218,14 @@ impl FileChooser {
             self.dir.view(
                 self.showhide,
                 self.preview_big_image,
-                self.right_spliter.as_ref(),
+                self.right_splitter.as_ref(),
                 self.current_selected.as_ref(),
                 self.is_directory(),
                 &self.selected_paths,
             ),
-            self.left_spliter,
+            self.left_splitter,
             split::Axis::Vertical,
-            Message::RequestAdjustLeftSpliter,
+            Message::RequestAdjustLeftSplitter,
         )
         .width(Length::Fill)
         .height(Length::Fill)
