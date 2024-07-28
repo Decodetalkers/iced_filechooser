@@ -195,6 +195,22 @@ pub enum FileChoosen {
     },
 }
 
+impl Default for FileChoosen {
+    fn default() -> Self {
+        Self::OpenFile {
+            handle_token: "".to_string(),
+            accept_label: "".to_string(),
+            modal: true,
+            multiple: false,
+            directory: false,
+            filters: Vec::new(),
+            current_filter: None,
+            choices: Vec::new(),
+            current_folder: None,
+        }
+    }
+}
+
 impl FileChoosen {
     pub fn is_filechooser(&self) -> bool {
         matches!(self, FileChoosen::OpenFile { .. })
@@ -208,7 +224,7 @@ impl FileChoosen {
         !self.is_filechooser()
     }
 
-    pub fn is_opendirectory(&self) -> bool {
+    pub fn is_directory(&self) -> bool {
         matches!(
             self,
             FileChoosen::OpenFile {

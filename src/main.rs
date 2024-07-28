@@ -1,3 +1,4 @@
+use iced_filechooser::portal_option::FileChoosen;
 use iced_filechooser::FileChooser;
 
 use iced_layershell::reexport::Anchor;
@@ -10,6 +11,17 @@ fn main() -> Result<(), iced_layershell::Error> {
             margins: (200, 200, 200, 200),
             anchor: Anchor::Left | Anchor::Right | Anchor::Top | Anchor::Bottom,
             ..Default::default()
+        },
+        flags: FileChoosen::OpenFile {
+            handle_token: "abc".to_string(),
+            accept_label: "a".to_string(),
+            modal: true,
+            multiple: false,
+            directory: true,
+            filters: Vec::new(),
+            current_filter: None,
+            choices: Vec::new(),
+            current_folder: None,
         },
         ..Default::default()
     })

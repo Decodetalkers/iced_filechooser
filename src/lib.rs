@@ -1,21 +1,21 @@
 mod dirfs;
 mod icon_cache;
-mod utils;
 pub mod portal_option;
+mod utils;
 
-use std::path::{Path, PathBuf};
 use dirfs::{update_dir_infos, DirUnit, FsInfo};
 use iced::widget::{checkbox, scrollable, Column};
 use iced::window::Id;
 use iced::{executor, Length};
 use iced::{Command, Element, Theme};
+use std::path::{Path, PathBuf};
 
 use iced_layershell::Application;
 use iced_runtime::command::Action;
 use iced_runtime::window::Action as WindowAction;
 
 use iced_aw::{split, Split};
-
+use portal_option::FileChoosen;
 
 #[derive(Debug)]
 pub struct FileChooser {
@@ -26,6 +26,7 @@ pub struct FileChooser {
     current_selected: Option<PathBuf>,
     right_spliter: Option<u16>,
     left_spliter: Option<u16>,
+    choose_option: FileChoosen,
 }
 
 fn is_samedir(patha: &Path, pathb: &Path) -> bool {
@@ -56,11 +57,11 @@ pub enum Message {
 
 impl Application for FileChooser {
     type Message = Message;
-    type Flags = ();
+    type Flags = FileChoosen;
     type Executor = executor::Default;
     type Theme = Theme;
 
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
+    fn new(choose_option: Self::Flags) -> (Self, Command<Message>) {
         (
             Self {
                 dir: DirUnit::enter(std::env::current_dir().unwrap().as_path()),
@@ -70,6 +71,7 @@ impl Application for FileChooser {
                 current_selected: None,
                 right_spliter: None,
                 left_spliter: Some(400),
+                choose_option,
             },
             Command::perform(update_dir_infos("."), Message::RequestNextDirs),
         )
@@ -102,6 +104,9 @@ impl Application for FileChooser {
             }
             Message::RequestMutiSelect((checked, file_path)) => {
                 if checked {
+                    if !self.is_muti_filechooser() {
+                        self.selected_paths.clear();
+                    }
                     if self.selected_paths.contains(&file_path) {
                         return Command::none();
                     }
@@ -115,15 +120,22 @@ impl Application for FileChooser {
                 }
                 Command::none()
             }
-            Message::RequestSelect(path) => {
+            Message::RequestSelect(file_path) => {
                 if self.current_selected.clone().is_some_and(|p| {
                     p.canonicalize().unwrap().as_os_str()
-                        == path.canonicalize().unwrap().as_os_str()
+                        == file_path.canonicalize().unwrap().as_os_str()
                 }) {
                     self.current_selected = None;
                 } else {
-                    self.current_selected = Some(path);
+                    self.current_selected = Some(file_path.clone());
                 }
+                if !self.is_muti_filechooser() {
+                    self.selected_paths.clear();
+                }
+                if self.selected_paths.contains(&file_path) {
+                    return Command::none();
+                }
+                self.selected_paths.push(file_path.clone());
                 Command::none()
             }
             Message::SearchPatternCachedChanged(pattern) => {
@@ -154,6 +166,12 @@ impl Application for FileChooser {
 }
 
 impl FileChooser {
+    fn is_directory(&self) -> bool {
+        self.choose_option.is_directory()
+    }
+    fn is_muti_filechooser(&self) -> bool {
+        self.choose_option.is_muti_filechooser()
+    }
     fn selected_view(&self) -> Element<Message> {
         let mut column = Column::new();
         for p in self.selected_paths.iter() {
@@ -173,7 +191,7 @@ impl FileChooser {
                 self.preview_big_image,
                 self.right_spliter.as_ref(),
                 self.current_selected.as_ref(),
-                false,
+                self.is_directory(),
                 &self.selected_paths,
             ),
             self.left_spliter,
