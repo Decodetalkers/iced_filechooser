@@ -107,7 +107,6 @@ impl FileFilter {
     }
 }
 
-
 #[derive(Clone, Serialize, Deserialize, Debug)]
 /// Presents the user with a choice to select from or as a checkbox.
 pub struct Choice(String, String, Vec<(String, String)>, String);
@@ -171,7 +170,6 @@ impl Choice {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub enum FileChoosen {
     OpenFile {
@@ -195,4 +193,63 @@ pub enum FileChoosen {
         current_folder: FilePath,
         current_file: FilePath,
     },
+}
+
+impl FileChoosen {
+    pub fn is_filechooser(&self) -> bool {
+        matches!(self, FileChoosen::OpenFile { .. })
+    }
+
+    pub fn is_muti_filechooser(&self) -> bool {
+        matches!(self, FileChoosen::OpenFile { multiple: true, .. })
+    }
+
+    pub fn is_savefile(&self) -> bool {
+        !self.is_filechooser()
+    }
+
+    pub fn is_opendirectory(&self) -> bool {
+        matches!(
+            self,
+            FileChoosen::OpenFile {
+                directory: true,
+                ..
+            }
+        )
+    }
+
+    pub fn filters(&self) -> &[FileFilter] {
+        match self {
+            Self::OpenFile { filters, .. } => filters,
+            Self::SaveFile { filters, .. } => filters,
+        }
+    }
+
+    pub fn choices(&self) -> &[Choice] {
+        match self {
+            Self::OpenFile { choices, .. } => choices,
+            Self::SaveFile { choices, .. } => choices,
+        }
+    }
+
+    pub fn handle_token(&self) -> &str {
+        match self {
+            Self::OpenFile { handle_token, .. } => handle_token,
+            Self::SaveFile { handle_token, .. } => handle_token,
+        }
+    }
+
+    pub fn accept_label(&self) -> &str {
+        match self {
+            Self::OpenFile { accept_label, .. } => accept_label,
+            Self::SaveFile { accept_label, .. } => accept_label,
+        }
+    }
+
+    pub fn is_modal(&self) -> bool {
+        match self {
+            Self::OpenFile { modal, .. } => *modal,
+            Self::SaveFile { modal, .. } => *modal,
+        }
+    }
 }

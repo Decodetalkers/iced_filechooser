@@ -678,7 +678,10 @@ impl FsInfo {
         }
 
         let bottom_text: Element<Message> = if can_selected {
-            file_btn = file_btn.on_press(Message::RequestSelect(self.path().clone()));
+            if self.is_file() {
+                file_btn = file_btn.on_press(Message::RequestSelect(self.path().clone()));
+            }
+
             if is_selected {
                 file_btn = file_btn.style(theme::Button::Primary);
             }
