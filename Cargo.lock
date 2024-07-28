@@ -1308,6 +1308,7 @@ dependencies = [
  "libc",
  "mime",
  "once_cell",
+ "serde",
  "tokio",
  "users",
  "xdg-mime",

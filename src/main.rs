@@ -1,8 +1,9 @@
 mod dirfs;
 mod icon_cache;
 mod utils;
-use std::path::{Path, PathBuf};
+mod portal_option;
 
+use std::path::{Path, PathBuf};
 use dirfs::{update_dir_infos, DirUnit, FsInfo};
 use iced::widget::{checkbox, scrollable, Column};
 use iced::window::Id;
