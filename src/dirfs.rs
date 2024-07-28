@@ -18,10 +18,10 @@ use crate::utils::get_icon;
 use mime::Mime;
 use xdg_mime::SharedMimeInfo;
 
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
-static MIME: Lazy<SharedMimeInfo> = Lazy::new(SharedMimeInfo::new);
-static INPUT_ID: Lazy<text_input::Id> = Lazy::new(text_input::Id::unique);
+static MIME: LazyLock<SharedMimeInfo> = LazyLock::new(SharedMimeInfo::new);
+static INPUT_ID: LazyLock<text_input::Id> = LazyLock::new(text_input::Id::unique);
 
 pub const GO_PREVIOUS: &[u8] = include_bytes!("../resources/go-previous.svg");
 

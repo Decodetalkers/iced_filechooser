@@ -1,10 +1,8 @@
 use iced::widget::svg;
 
-use once_cell::sync::Lazy;
-
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::{Arc, LazyLock, RwLock},
 };
 
 #[derive(Debug, Hash, PartialEq, Eq)]
@@ -17,8 +15,8 @@ const TEXT_IMAGE: &[u8] = include_bytes!("../resources/text-plain.svg");
 
 const DIR_IMAGE: &[u8] = include_bytes!("../resources/inode-directory.svg");
 
-static ICON_CACHE: Lazy<Arc<RwLock<HashMap<IconKey, svg::Handle>>>> =
-    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+static ICON_CACHE: LazyLock<Arc<RwLock<HashMap<IconKey, svg::Handle>>>> =
+    LazyLock::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 pub fn get_icon_handle(key: IconKey) -> svg::Handle {
     let icon_cache = ICON_CACHE.read().unwrap();
