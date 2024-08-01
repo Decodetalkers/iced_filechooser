@@ -222,6 +222,7 @@ impl FileChooser {
                 self.current_selected.as_ref(),
                 self.is_directory(),
                 &self.selected_paths,
+                &self.current_filter
             ),
             self.left_splitter,
             split::Axis::Vertical,

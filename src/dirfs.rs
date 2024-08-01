@@ -13,6 +13,7 @@ use std::{
 use iced_aw::{split, Grid, GridRow, Split};
 
 use crate::icon_cache::{get_icon_handle, IconKey};
+use crate::portal_option::{FileFilter, FilterType};
 use crate::utils::get_icon;
 
 use mime::Mime;
@@ -145,13 +146,14 @@ impl DirUnit {
         current_selected: Option<&PathBuf>,
         select_dir: bool,
         seclected_paths: &[PathBuf],
+        current_filter: &FileFilter,
     ) -> Element<Message> {
         let mut grid = Grid::new().column_width(COLUMN_WIDTH);
         let filter_way = |dir: &&FsInfo| {
             (show_hide || !dir.is_hidden())
                 && glob::Pattern::new(&format!("*{}*", self.glob_pattern))
-                    .unwrap()
-                    .matches(dir.name())
+                    .is_ok_and(|pattern| pattern.matches(dir.name()))
+                && dir.is_match_filefilter(current_filter)
         };
         let nottoshowall = self.fs_infos().iter().filter(filter_way).count() > 200;
         if nottoshowall {
@@ -258,6 +260,7 @@ impl DirUnit {
         current_selected: Option<&PathBuf>,
         select_dir: bool,
         seclected_paths: &[PathBuf],
+        current_filter: &FileFilter,
     ) -> Element<Message> {
         if self.is_end {
             self.main_grid(
@@ -267,6 +270,7 @@ impl DirUnit {
                 current_selected,
                 select_dir,
                 seclected_paths,
+                current_filter,
             )
         } else {
             self.loading_page()
@@ -281,6 +285,7 @@ impl DirUnit {
         current_selected: Option<&PathBuf>,
         select_dir: bool,
         seclected_paths: &[PathBuf],
+        current_filter: &FileFilter,
     ) -> Element<Message> {
         column![
             self.title_bar(show_hide, preview_image),
@@ -290,7 +295,8 @@ impl DirUnit {
                 right_splitter,
                 current_selected,
                 select_dir,
-                seclected_paths
+                seclected_paths,
+                current_filter
             ),
             self.confirm_buttons(),
             Space::new(0, 5.)
@@ -500,6 +506,39 @@ fn triplet(mode: u32, read: u32, write: u32, execute: u32) -> String {
     .to_string()
 }
 
+impl FsInfo {
+    fn is_match_filefilter(&self, filefilter: &FileFilter) -> bool {
+        if filefilter.get_filters().is_empty() {
+            return true;
+        }
+        for (filter_type, filter_pattern) in filefilter.get_filters() {
+            match filter_type {
+                FilterType::MimeType => {
+                    if let FsInfo::File { mimeinfo, .. } = self {
+                        if mimeinfo
+                            .iter()
+                            .any(|mime| mime.to_string() == *filter_pattern)
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                FilterType::GlobPattern => {
+                    let file_path = self.path();
+
+                    if glob::Pattern::new(&filter_pattern)
+                        .is_ok_and(|pattern| pattern.matches_path(&file_path))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+}
+
 fn parse_permissions(mode: u32) -> String {
     let user = triplet(mode, S_IRUSR, S_IWUSR, S_IXUSR);
     let group = triplet(mode, S_IRGRP, S_IWGRP, S_IXGRP);
@@ -687,7 +726,9 @@ impl FsInfo {
             }
             container(
                 checkbox(self.name(), is_checked)
-                    .on_toggle(|checked| Message::RequestMultiSelect((checked, self.path().clone())))
+                    .on_toggle(|checked| {
+                        Message::RequestMultiSelect((checked, self.path().clone()))
+                    })
                     .width(BUTTON_WIDTH),
             )
             .width(Length::Fill)

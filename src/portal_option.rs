@@ -61,6 +61,16 @@ impl FilterType {
 pub struct FileFilter(String, Vec<(FilterType, String)>);
 
 impl FileFilter {
+    pub fn title(&self) -> &str {
+        &self.0
+    }
+
+    pub fn get_filters(&self) -> &[(FilterType, String)] {
+        &self.1
+    }
+}
+
+impl FileFilter {
     /// Create a new file filter
     ///
     /// # Arguments
