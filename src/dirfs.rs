@@ -138,6 +138,7 @@ impl DirUnit {
         self.glob_pattern = self.glob_pattern_cache.clone();
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn main_grid(
         &self,
         show_hide: bool,
@@ -252,6 +253,7 @@ impl DirUnit {
         .into()
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn bottom_view(
         &self,
         show_hide: bool,
@@ -277,6 +279,7 @@ impl DirUnit {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn view(
         &self,
         show_hide: bool,
@@ -527,7 +530,7 @@ impl FsInfo {
                 FilterType::GlobPattern => {
                     let file_path = self.path();
 
-                    if glob::Pattern::new(&filter_pattern)
+                    if glob::Pattern::new(filter_pattern)
                         .is_ok_and(|pattern| pattern.matches_path(&file_path))
                     {
                         return true;
