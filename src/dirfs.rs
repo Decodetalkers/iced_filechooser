@@ -511,6 +511,9 @@ fn triplet(mode: u32, read: u32, write: u32, execute: u32) -> String {
 
 impl FsInfo {
     fn is_match_filefilter(&self, filefilter: &FileFilter) -> bool {
+        if self.is_dir() {
+            return true;
+        }
         if filefilter.get_filters().is_empty() {
             return true;
         }
