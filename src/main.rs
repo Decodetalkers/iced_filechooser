@@ -8,7 +8,7 @@ use iced_layershell::Application;
 fn main() -> Result<(), iced_layershell::Error> {
     FileChooser::run(Settings {
         layer_settings: LayerShellSettings {
-            margins: (200, 200, 200, 200),
+            margin: (200, 200, 200, 200),
             anchor: Anchor::Left | Anchor::Right | Anchor::Top | Anchor::Bottom,
             ..Default::default()
         },

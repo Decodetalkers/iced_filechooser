@@ -1412,9 +1412,9 @@ dependencies = [
 
 [[package]]
 name = "iced_layershell"
-version = "0.3.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3c69e0ccd60f048905eccd69d129782e9cd73a89c795ba05ca5530859310094"
+checksum = "1476257d12e8ab45ab028ee060859dfae80c7c0627f62c7714db2cf74bc51a29"
 dependencies = [
  "futures",
  "iced",
@@ -1700,9 +1700,9 @@ dependencies = [
 
 [[package]]
 name = "layershellev"
-version = "0.3.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfda1617b6b9b35482a2da99a35cd60e19a000e02b4b4ca555cc814b217b7c02"
+checksum = "ff6191a8c9fc99d4f0e2bfd5ee37378b84a49ad84def63ebf71ead993a2dcd18"
 dependencies = [
  "bitflags 2.6.0",
  "log",
@@ -3083,14 +3083,15 @@ dependencies = [
 
 [[package]]
 name = "tempfile"
-version = "3.10.1"
+version = "3.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85b77fafb263dd9d05cbeac119526425676db3784113aa9295c88498cbf8bff1"
+checksum = "04cbcdd0c794ebb0d4cf35e88edd2f7d2c4c3e9a5a6dab322839b321c6a87a64"
 dependencies = [
  "cfg-if",
  "fastrand",
+ "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3560,9 +3561,9 @@ dependencies = [
 
 [[package]]
 name = "waycrate_xkbkeycode"
-version = "0.3.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a64ac0605a51165a4407bea25077ee668fda780692d0e5abb5872c1d9fe52ae6"
+checksum = "4b3ce2bc859e5b3d1f5f29b90e0ddd03e6d92f46127c898c48832023261d7c7d"
 dependencies = [
  "bitflags 2.6.0",
  "log",
@@ -3946,6 +3947,15 @@ name = "windows-sys"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
+dependencies = [
+ "windows-targets 0.52.6",
+]
+
+[[package]]
+name = "windows-sys"
+version = "0.59.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b"
 dependencies = [
  "windows-targets 0.52.6",
 ]
