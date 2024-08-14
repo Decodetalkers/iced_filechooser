@@ -351,16 +351,18 @@ impl DirUnit {
         let mut current_path_dir = current_dir.clone();
 
         dirbtn.push(
-            button(text(get_dir_name(&current_path_dir)))
+            button(text(get_dir_name(&current_path_dir)).shaping(text::Shaping::Advanced))
                 .on_press(Message::RequestEnter(current_path_dir.clone()))
                 .into(),
         );
 
         while let Some(parent) = current_path_dir.parent() {
             current_path_dir = PathBuf::from(parent);
-            let mut newbtns = vec![button(text(get_dir_name(&current_path_dir)))
-                .on_press(Message::RequestEnter(current_path_dir.clone()))
-                .into()];
+            let mut newbtns = vec![button(
+                text(get_dir_name(&current_path_dir)).shaping(text::Shaping::Advanced),
+            )
+            .on_press(Message::RequestEnter(current_path_dir.clone()))
+            .into()];
             newbtns.append(&mut dirbtn);
             dirbtn = newbtns;
         }
@@ -426,7 +428,9 @@ pub async fn update_dir_infos<P: AsRef<Path>>(path: P) -> (Vec<FsInfo>, PathBuf)
         let permission = parse_permissions(metadata.mode());
         let mime = &MIME;
         if metadata.is_symlink() {
-            let realpath = tokio::fs::read_link(&path).await.unwrap();
+            let Ok(realpath) = tokio::fs::read_link(&path).await else {
+                continue;
+            };
             if path.is_dir() {
                 fs_infos.push(FsInfo::Dir {
                     path,
@@ -684,6 +688,7 @@ impl FsInfo {
                 .width(Length::Fill),
             text(self.name())
                 .horizontal_alignment(alignment::Horizontal::Center)
+                .shaping(text::Shaping::Advanced)
                 .width(Length::Fill)
         ]
         .into()
@@ -742,6 +747,7 @@ impl FsInfo {
         } else {
             container(
                 text(self.name())
+                    .shaping(text::Shaping::Advanced)
                     .width(BUTTON_WIDTH)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
