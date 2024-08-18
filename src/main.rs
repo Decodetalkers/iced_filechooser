@@ -16,7 +16,7 @@ fn main() -> Result<(), iced_layershell::Error> {
             handle_token: "abc".to_string(),
             accept_label: "a".to_string(),
             modal: true,
-            multiple: false,
+            multiple: true,
             directory: true,
             filters: [FileFilter::new("Svg Image").mimetype("image/svg+xml")].to_vec(),
             current_filter: None,

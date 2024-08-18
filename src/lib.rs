@@ -4,7 +4,7 @@ pub mod portal_option;
 mod utils;
 
 use dirfs::{update_dir_infos, DirUnit, FsInfo};
-use iced::widget::{checkbox, column, combo_box, scrollable, Column};
+use iced::widget::{checkbox, column, combo_box, container, row, scrollable, text, Column, Space};
 use iced::window::Id;
 use iced::{executor, Length};
 use iced::{Command, Element, Theme};
@@ -20,6 +20,7 @@ use portal_option::{FileChosen, FileFilter};
 #[derive(Debug)]
 pub struct FileChooser {
     dir: DirUnit,
+    display_name: String,
     showhide: bool,
     preview_big_image: bool,
     selected_paths: Vec<PathBuf>,
@@ -73,6 +74,7 @@ impl Application for FileChooser {
         (
             Self {
                 dir: DirUnit::enter(std::env::current_dir().unwrap().as_path()),
+                display_name: choose_option.accept_label().to_string(),
                 showhide: false,
                 preview_big_image: false,
                 selected_paths: Vec::new(),
@@ -198,16 +200,35 @@ impl FileChooser {
     }
 
     fn left_view(&self) -> Element<Message> {
-        let mut column = Column::new();
+        let mut column = Column::new().spacing(2.);
+        column = column.push(Space::with_height(10.));
+        column = column.push(
+            container(
+                text(&self.display_name)
+                    .shaping(text::Shaping::Advanced)
+                    .size(20.)
+                    .font(iced::Font {
+                        weight: iced::font::Weight::Bold,
+                        ..Default::default()
+                    }),
+            )
+            .width(Length::Fill)
+            .center_x(),
+        );
+        column = column.push(Space::with_height(10.));
         for p in self.selected_paths.iter() {
             let rp = std::fs::canonicalize(p).unwrap();
             let name = rp.to_str().unwrap();
             column = column.push(
-                checkbox(name, true).on_toggle(|_| Message::RequestMultiSelect((false, p.clone()))),
+                checkbox(name, true)
+                    .on_toggle(|_| Message::RequestMultiSelect((false, p.clone())))
+                    .text_size(20.),
             );
         }
         column![
-            scrollable(column).height(Length::Fill).height(Length::Fill),
+            scrollable(row![Space::with_width(10.), column, Space::with_width(10.)])
+                .height(Length::Fill)
+                .height(Length::Fill),
             self.filter_box()
         ]
         .into()
@@ -222,7 +243,7 @@ impl FileChooser {
                 self.current_selected.as_ref(),
                 self.is_directory(),
                 &self.selected_paths,
-                &self.current_filter
+                &self.current_filter,
             ),
             self.left_splitter,
             split::Axis::Vertical,
